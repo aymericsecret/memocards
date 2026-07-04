@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DeckPage } from "./deck/deck-page";
 import { DecksPage } from "./deck/decks-page";
+import { ReviewPage } from "./review/review-page";
 import "./App.css";
 import { routeFromLocation, type Route } from "./shared/navigation";
 
@@ -13,9 +14,10 @@ export function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  return route.name === "deck" ? (
-    <DeckPage deckId={route.deckId} />
-  ) : (
-    <DecksPage />
-  );
+  if (route.name === "deck") return <DeckPage deckId={route.deckId} />;
+  if (route.name === "reviewType") {
+    return <ReviewPage reviewTypeId={route.reviewTypeId} />;
+  }
+
+  return <DecksPage />;
 }

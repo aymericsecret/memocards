@@ -1,4 +1,4 @@
-import { ArrowLeft, MoreHorizontal, TableIcon } from "lucide-react";
+import { ArrowLeft, ListChecks, Play, Plus, TableIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createCardSidesPayload,
@@ -9,12 +9,18 @@ import {
 } from "../cards/card-queries";
 import { CardFilters } from "../cards/card-filters";
 import { CardTable } from "../cards/card-table";
+import { NewCardModal } from "../cards/new-card-modal";
 import { Button } from "../design-system";
+import { ReviewTypesTab } from "../review/review-types-tab";
+import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
 import type { CardRow, SideTemplate } from "../shared/types";
+import { DeckActionsMenu } from "./deck-actions-menu";
 import { useDeckQuery } from "./deck-queries";
 
 export function DeckPage({ deckId }: { deckId: string }) {
+  const [activeTab, setActiveTab] = useState<"cards" | "review-types">("cards");
+  const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -25,6 +31,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [sideFilters, setSideFilters] = useState<Record<number, "filled" | "empty">>({});
   const tableRef = useRef<HTMLDivElement>(null);
   const deckQuery = useDeckQuery(deckId);
+  const reviewTypesQuery = useReviewTypesQuery(deckId);
   const deck = deckQuery.data ?? null;
 
   const templates = useMemo(
@@ -85,6 +92,11 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const cardsQuery = useDeckCardsQuery(deckId, cardFilters);
   const cards = cardsQuery.data?.cards ?? [];
   const totalCount = cardsQuery.data?.totalCount ?? 0;
+  const reviewTypes = reviewTypesQuery.data ?? [];
+  const defaultReviewType =
+    reviewTypes.find((reviewType) => reviewType.isDefault) ??
+    reviewTypes.find((reviewType) => reviewType.id === deck?.defaultReviewTypeId) ??
+    null;
   const createCardMutation = useCreateCardMutation(deckId);
   const updateCardMutation = useUpdateCardMutation(deckId);
   const deleteCardMutation = useDeleteCardMutation(deckId);
@@ -107,6 +119,12 @@ export function DeckPage({ deckId }: { deckId: string }) {
 
     setNewRow({});
     setTimeout(() => focusCell("__new__", 0), 50);
+  };
+
+  const addCardFromModal = async (
+    sides: Array<{ content: string; label: string; position: number }>
+  ) => {
+    await createCardMutation.mutateAsync({ sides });
   };
 
   const updateCardSide = async (
@@ -151,61 +169,107 @@ export function DeckPage({ deckId }: { deckId: string }) {
           <span className="card-count">
             {totalCount} carte{totalCount !== 1 ? "s" : ""}
           </span>
-          <Button className="push-right" variant="ghost" size="icon" aria-label="Menu">
-            <MoreHorizontal size={18} />
+          <Button
+            className="mobile-only"
+            size="icon"
+            onClick={() => setIsNewCardModalOpen(true)}
+            aria-label="Ajouter une carte"
+          >
+            <Plus size={18} />
           </Button>
+          <DeckActionsMenu cards={cards} deckName={deck.name} templates={templates} />
         </div>
       </header>
 
       <main className="container deck-main">
-        <div className="deck-heading">
-          <h1>{deck.name}</h1>
-          {deck.description && <p>{deck.description}</p>}
-          <p className="mobile-count">
-            {totalCount} carte{totalCount !== 1 ? "s" : ""}
-          </p>
+        <div className="deck-heading-row">
+          <div className="deck-heading">
+            <h1>{deck.name}</h1>
+            {deck.description && <p>{deck.description}</p>}
+            <p className="mobile-count">
+              {totalCount} carte{totalCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+          {defaultReviewType && (
+            <Button
+              className="deck-start-review"
+              disabled={defaultReviewType.dueCount === 0}
+              onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
+            >
+              <Play size={16} fill="currentColor" />
+              Reviser
+              <span>{defaultReviewType.dueCount}</span>
+            </Button>
+          )}
         </div>
 
         <div className="tabs-list">
-          <button className="tab active">
+          <button
+            className={activeTab === "cards" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("cards")}
+          >
             <TableIcon size={14} /> Cartes
+          </button>
+          <button
+            className={activeTab === "review-types" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("review-types")}
+          >
+            <ListChecks size={14} /> Types de revision
           </button>
         </div>
 
-        <CardFilters
-          search={search}
-          selectedStatuses={selectedStatuses}
-          selectedTagIds={selectedTagIds}
-          sideFilters={sideFilters}
-          sortDir={sortDir}
-          sortField={sortField}
-          tags={deck.tags}
-          templates={templates}
-          onSearchChange={setSearch}
-          onSelectedStatusesChange={setSelectedStatuses}
-          onSelectedTagIdsChange={setSelectedTagIds}
-          onSideFiltersChange={setSideFilters}
-          onSortChange={(field, dir) => {
-            setSortField(field);
-            setSortDir(dir);
-          }}
-        />
+        {activeTab === "cards" ? (
+          <>
+            <CardFilters
+              search={search}
+              selectedStatuses={selectedStatuses}
+              selectedTagIds={selectedTagIds}
+              sideFilters={sideFilters}
+              sortDir={sortDir}
+              sortField={sortField}
+              tags={deck.tags}
+              templates={templates}
+              onSearchChange={setSearch}
+              onSelectedStatusesChange={setSelectedStatuses}
+              onSelectedTagIdsChange={setSelectedTagIds}
+              onSideFiltersChange={setSideFilters}
+              onSortChange={(field, dir) => {
+                setSortField(field);
+                setSortDir(dir);
+              }}
+            />
 
-        <CardTable
-          cards={cards}
-          newRow={newRow}
-          tableRef={tableRef}
-          templates={templates}
-          totalCount={totalCount}
-          onAddCard={() => void addCard()}
-          onDeleteCard={(cardId) => void deleteCard(cardId)}
-          onFocusCell={focusCell}
-          onNewRowChange={setNewRow}
-          onUpdateCardSide={(card, template, content) =>
-            void updateCardSide(card, template, content)
-          }
-        />
+            <CardTable
+              cards={cards}
+              newRow={newRow}
+              tableRef={tableRef}
+              templates={templates}
+              totalCount={totalCount}
+              onAddCard={() => void addCard()}
+              onDeleteCard={(cardId) => void deleteCard(cardId)}
+              onFocusCell={focusCell}
+              onNewRowChange={setNewRow}
+              onUpdateCardSide={(card, template, content) =>
+                void updateCardSide(card, template, content)
+              }
+            />
+          </>
+        ) : (
+          <ReviewTypesTab
+            deckId={deckId}
+            reviewTypes={reviewTypes}
+            tags={deck.tags}
+            templates={templates}
+          />
+        )}
       </main>
+
+      <NewCardModal
+        isOpen={isNewCardModalOpen}
+        templates={templates}
+        onClose={() => setIsNewCardModalOpen(false)}
+        onCreateCard={addCardFromModal}
+      />
     </div>
   );
 }
