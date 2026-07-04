@@ -1,4 +1,4 @@
-import { ArrowLeft, ListChecks, Play, Plus, TableIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, ListChecks, Play, Plus, TableIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createCardSidesPayload,
@@ -18,9 +18,10 @@ import { navigate } from "../shared/navigation";
 import type { CardRow, SideTemplate } from "../shared/types";
 import { DeckActionsMenu } from "./deck-actions-menu";
 import { useDeckQuery } from "./deck-queries";
+import { DeckStatsTab } from "./deck-stats-tab";
 
 export function DeckPage({ deckId }: { deckId: string }) {
-  const [activeTab, setActiveTab] = useState<"cards" | "review-types">("cards");
+  const [activeTab, setActiveTab] = useState<"cards" | "review-types" | "stats">("cards");
   const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
@@ -245,6 +246,12 @@ export function DeckPage({ deckId }: { deckId: string }) {
           >
             <ListChecks size={14} /> Types de revision
           </button>
+          <button
+            className={activeTab === "stats" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("stats")}
+          >
+            <BarChart3 size={14} /> Statistiques
+          </button>
         </div>
 
         {activeTab === "cards" ? (
@@ -288,13 +295,15 @@ export function DeckPage({ deckId }: { deckId: string }) {
               }
             />
           </>
-        ) : (
+        ) : activeTab === "review-types" ? (
           <ReviewTypesTab
             deckId={deckId}
             reviewTypes={reviewTypes}
             tags={deck.tags}
             templates={templates}
           />
+        ) : (
+          <DeckStatsTab deckId={deckId} />
         )}
       </main>
 

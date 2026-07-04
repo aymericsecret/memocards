@@ -35,6 +35,37 @@ interface DeckDetailRow {
   tags: unknown;
 }
 
+interface DeckStatsReviewTypeRow {
+  id: string;
+  name: string;
+}
+
+interface DeckReviewStatsRow {
+  review_type_id: string;
+  total_cards: string;
+  total_reviews: string;
+  last_review_date: string | null;
+  new_count: string;
+  learning_count: string;
+  known_count: string;
+  group_new: string;
+  group_now: string;
+  group_in1h: string;
+  group_in24h: string;
+  group_tomorrow: string;
+  group_in_week: string;
+  group_later: string;
+}
+
+interface DeckReviewHistoryRow {
+  review_type_id: string;
+  day: string;
+  again: string;
+  hard: string;
+  good: string;
+  easy: string;
+}
+
 @Service()
 export class DecksRepository {
   private readonly database: Database;
@@ -253,6 +284,162 @@ export class DecksRepository {
       totalCards: Number(row.total_cards),
       sideTemplates: row.side_templates,
       tags: row.tags
+    };
+  }
+
+  async getDeckStats(deckId: string, userId: string) {
+    await this.ensureUser(userId);
+
+    const deckResult = await this.database.query<{ id: string }>(
+      `
+      select id
+      from decks
+      where id = $1::uuid
+        and user_id = $2::uuid
+      `,
+      [deckId, userId]
+    );
+
+    if (!deckResult.rows[0]) return null;
+
+    const [reviewTypesResult, statsResult, historyResult] = await Promise.all([
+      this.database.query<DeckStatsReviewTypeRow>(
+        `
+        select id, name
+        from review_types
+        where deck_id = $1::uuid
+        order by created_at asc
+        `,
+        [deckId]
+      ),
+      this.database.query<DeckReviewStatsRow>(
+        `
+        with scoped as (
+          select
+            rt.id as review_type_id,
+            c.id as card_id,
+            rtc.id as rtc_id,
+            coalesce(rtc.learning_status, 'new'::learning_status)::text as learning_status,
+            rtc.last_review,
+            rtc.due,
+            case
+              when rtc.id is null then 'new'
+              when rtc.due <= now() then 'now'
+              when rtc.due <= now() + interval '1 hour' then 'in1h'
+              when rtc.due <= now() + interval '24 hours' then 'in24h'
+              when rtc.due <= now() + interval '48 hours' then 'tomorrow'
+              when rtc.due <= now() + interval '7 days' then 'inWeek'
+              else 'later'
+            end as review_group
+          from review_types rt
+          join cards c
+            on c.deck_id = rt.deck_id
+           and (
+             rt.tag_id is null
+             or exists (
+               select 1
+               from card_tags ct
+               where ct.card_id = c.id
+                 and ct.tag_id = rt.tag_id
+             )
+           )
+          left join review_type_cards rtc
+            on rtc.review_type_id = rt.id
+           and rtc.card_id = c.id
+          where rt.deck_id = $1::uuid
+        ),
+        reviews as (
+          select review_type_id, count(*) as total_reviews
+          from review_logs
+          where review_type_id in (
+            select id
+            from review_types
+            where deck_id = $1::uuid
+          )
+          group by review_type_id
+        )
+        select
+          scoped.review_type_id,
+          count(scoped.card_id) as total_cards,
+          coalesce(max(reviews.total_reviews), 0) as total_reviews,
+          max(scoped.last_review) as last_review_date,
+          count(scoped.card_id) filter (where scoped.rtc_id is null) as new_count,
+          count(scoped.card_id) filter (where scoped.rtc_id is not null and scoped.learning_status = 'learning') as learning_count,
+          count(scoped.card_id) filter (where scoped.learning_status = 'known') as known_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'new') as group_new,
+          count(scoped.card_id) filter (where scoped.review_group = 'now') as group_now,
+          count(scoped.card_id) filter (where scoped.review_group = 'in1h') as group_in1h,
+          count(scoped.card_id) filter (where scoped.review_group = 'in24h') as group_in24h,
+          count(scoped.card_id) filter (where scoped.review_group = 'tomorrow') as group_tomorrow,
+          count(scoped.card_id) filter (where scoped.review_group = 'inWeek') as group_in_week,
+          count(scoped.card_id) filter (where scoped.review_group = 'later') as group_later
+        from scoped
+        left join reviews on reviews.review_type_id = scoped.review_type_id
+        group by scoped.review_type_id
+        `,
+        [deckId]
+      ),
+      this.database.query<DeckReviewHistoryRow>(
+        `
+        select
+          rl.review_type_id,
+          to_char(date_trunc('day', rl.reviewed_at), 'YYYY-MM-DD') as day,
+          count(*) filter (where rl.rating = 1) as again,
+          count(*) filter (where rl.rating = 2) as hard,
+          count(*) filter (where rl.rating = 3) as good,
+          count(*) filter (where rl.rating = 4) as easy
+        from review_logs rl
+        join review_types rt on rt.id = rl.review_type_id
+        where rt.deck_id = $1::uuid
+        group by rl.review_type_id, date_trunc('day', rl.reviewed_at)
+        order by day asc
+        `,
+        [deckId]
+      )
+    ]);
+
+    const statsByReviewType = Object.fromEntries(
+      statsResult.rows.map((row) => [
+        row.review_type_id,
+        {
+          totalCards: Number(row.total_cards),
+          totalReviews: Number(row.total_reviews),
+          lastReviewDate: row.last_review_date,
+          newCount: Number(row.new_count),
+          learningCount: Number(row.learning_count),
+          knownCount: Number(row.known_count),
+          groups: {
+            new: Number(row.group_new),
+            now: Number(row.group_now),
+            in1h: Number(row.group_in1h),
+            in24h: Number(row.group_in24h),
+            tomorrow: Number(row.group_tomorrow),
+            inWeek: Number(row.group_in_week),
+            later: Number(row.group_later)
+          }
+        }
+      ])
+    );
+
+    const historyByReviewType: Record<string, unknown[]> = {};
+    for (const row of historyResult.rows) {
+      historyByReviewType[row.review_type_id] ??= [];
+      historyByReviewType[row.review_type_id].push({
+        date: row.day,
+        again: Number(row.again),
+        hard: Number(row.hard),
+        good: Number(row.good),
+        easy: Number(row.easy)
+      });
+    }
+
+    return {
+      reviewTypes: reviewTypesResult.rows.map((row) => ({
+        id: row.id,
+        name: row.name
+      })),
+      statsByReviewType,
+      historyByReviewType
     };
   }
 

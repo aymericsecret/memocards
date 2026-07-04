@@ -1242,6 +1242,281 @@ td input:focus {
   font-weight: 650;
 }
 
+.deck-stats {
+  display: grid;
+  gap: 16px;
+}
+
+.stats-review-select {
+  width: min(100%, 320px);
+  height: 36px;
+  border: 1px solid hsl(var(--input));
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0 10px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+}
+
+.stats-tabs-list {
+  width: fit-content;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 24px;
+}
+
+.stats-left {
+  display: grid;
+  gap: 16px;
+}
+
+.hero-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.hero-stat,
+.stats-panel {
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: hsl(var(--card));
+}
+
+.hero-stat > div,
+.stat-inline,
+.due-row,
+.legend-dot {
+  display: flex;
+  align-items: center;
+}
+
+.hero-stat > div {
+  gap: 8px;
+  color: hsl(var(--muted-foreground));
+}
+
+.hero-stat p,
+.stat-inline p,
+.stats-panel-heading p {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero-stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.7rem;
+}
+
+.stat-inline {
+  gap: 12px;
+}
+
+.stat-inline svg {
+  color: hsl(var(--primary));
+}
+
+.stat-inline strong {
+  font-size: 0.92rem;
+}
+
+.stats-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stats-panel-heading span {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.76rem;
+}
+
+.progress-stack {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: hsl(var(--muted) / 0.4);
+}
+
+.progress-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 10px;
+}
+
+.legend-dot {
+  gap: 6px;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+}
+
+.legend-dot > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.legend-dot strong {
+  color: hsl(var(--foreground));
+}
+
+.stats-due-panel {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.due-row {
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.due-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--muted-foreground));
+}
+
+.due-row .highlight {
+  color: hsl(var(--foreground));
+  font-weight: 650;
+}
+
+.accent-count {
+  color: hsl(var(--accent));
+}
+
+.stats-empty {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9rem;
+}
+
+.history-timeline {
+  display: grid;
+  gap: 14px;
+}
+
+.history-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.streak-stat {
+  border-color: hsl(40 90% 62% / 0.45);
+  background: hsl(40 90% 62% / 0.08);
+}
+
+.streak-stat svg {
+  color: hsl(40 90% 42%);
+}
+
+.history-last-date {
+  font-size: 0.9rem;
+}
+
+.history-day-list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-day-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: hsl(var(--card));
+}
+
+.history-day-meta {
+  display: grid;
+  gap: 3px;
+}
+
+.history-day-meta strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.history-day-meta span {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.76rem;
+}
+
+.history-day-content {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.history-day-stack {
+  height: 14px;
+  display: flex;
+  overflow: hidden;
+  border-radius: 999px;
+  background: hsl(var(--muted) / 0.35);
+}
+
+.history-day-stack span {
+  min-width: 2px;
+}
+
+.history-day-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.history-day-breakdown > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.history-day-breakdown > span > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.history-empty {
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 720px) {
+  .history-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-day-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .review-tab {
   display: grid;
   gap: 12px;
