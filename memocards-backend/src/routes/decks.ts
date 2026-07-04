@@ -1,14 +1,17 @@
 import type { FastifyInstance } from "fastify";
 import { Container } from "typedi";
 import { z } from "zod";
+import { env } from "../env.js";
 import {
   DeckCardsRepository,
   reviewGroupKeys
 } from "../repositories/deck-cards.repository.js";
+import { DecksRepository } from "../repositories/decks.repository.js";
 
 const cardsQuerySchema = z.object({
   search: z.string().optional(),
   tagIds: z.string().optional(),
+  statuses: z.string().optional(),
   reviewTypeId: z.string().uuid().optional(),
   groups: z.string().optional(),
   sideFilled: z.string().optional(),
@@ -21,6 +24,12 @@ const cardsQuerySchema = z.object({
 
 const paramsSchema = z.object({
   deckId: z.string().uuid()
+});
+
+const createDeckBodySchema = z.object({
+  name: z.string().trim().min(1),
+  description: z.string().optional().nullable(),
+  sideLabels: z.array(z.string().trim().min(1)).min(2).default(["Recto", "Verso"])
 });
 
 function parseCsv(value: string | undefined) {
@@ -48,7 +57,47 @@ function parseReviewGroups(value: string | undefined) {
   return values.map((group) => z.enum(reviewGroupKeys).parse(group));
 }
 
+function parseLearningStatuses(value: string | undefined) {
+  const values = parseCsv(value);
+  if (!values) return null;
+
+  return values.map((status) => z.enum(["new", "learning", "known"]).parse(status));
+}
+
 export async function registerDeckRoutes(app: FastifyInstance) {
+  app.get("/decks", async () => {
+    const repository = Container.get(DecksRepository);
+    return { decks: await repository.listDecks(env.DEFAULT_USER_ID) };
+  });
+
+  app.post("/decks", async (request, reply) => {
+    const body = createDeckBodySchema.parse(request.body);
+    const repository = Container.get(DecksRepository);
+    const deck = await repository.createDeck({
+      userId: env.DEFAULT_USER_ID,
+      name: body.name,
+      description: body.description,
+      sideLabels: body.sideLabels
+    });
+
+    return reply.status(201).send(deck);
+  });
+
+  app.get("/decks/:deckId", async (request, reply) => {
+    const params = paramsSchema.parse(request.params);
+    const repository = Container.get(DecksRepository);
+    const deck = await repository.getDeck(params.deckId, env.DEFAULT_USER_ID);
+
+    if (!deck) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "Deck not found"
+      });
+    }
+
+    return { deck };
+  });
+
   app.get("/decks/:deckId/cards", async (request) => {
     const params = paramsSchema.parse(request.params);
     const query = cardsQuerySchema.parse(request.query);
@@ -58,6 +107,7 @@ export async function registerDeckRoutes(app: FastifyInstance) {
       deckId: params.deckId,
       search: query.search,
       tagIds: parseCsv(query.tagIds),
+      learningStatuses: parseLearningStatuses(query.statuses),
       reviewTypeId: query.reviewTypeId ?? null,
       reviewGroups: parseReviewGroups(query.groups),
       sideFilledPositions: parseIntegerCsv(query.sideFilled),

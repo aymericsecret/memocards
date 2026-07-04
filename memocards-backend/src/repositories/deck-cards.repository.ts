@@ -17,6 +17,7 @@ export interface SearchDeckCardsParams {
   deckId: string;
   search?: string | null;
   tagIds?: string[] | null;
+  learningStatuses?: string[] | null;
   reviewTypeId?: string | null;
   reviewGroups?: ReviewGroupKey[] | null;
   sideFilledPositions?: number[] | null;
@@ -105,6 +106,15 @@ export class DeckCardsRepository {
             ) = any($5::text[])
           )
           and (
+            $10::text[] is null
+            or (
+              case
+                when group_rtc.id is null then 'new'
+                else group_rtc.learning_status::text
+              end
+            ) = any($10::text[])
+          )
+          and (
             $6::int[] is null
             or not exists (
               select 1
@@ -181,7 +191,8 @@ export class DeckCardsRepository {
         params.sideFilledPositions?.length ? params.sideFilledPositions : null,
         params.sideEmptyPositions?.length ? params.sideEmptyPositions : null,
         params.limit,
-        params.offset
+        params.offset,
+        params.learningStatuses?.length ? params.learningStatuses : null
       ]
     );
 

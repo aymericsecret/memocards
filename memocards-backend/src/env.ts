@@ -8,7 +8,8 @@ export const envVariablesSchema = z.object({
   HOST: z.string().default("0.0.0.0"),
   PORT: z.coerce.number().int().positive().default(8000),
   DATABASE_URL: z.string().url(),
-  CORS_ORIGIN: z.string().default("http://localhost:3000")
+  CORS_ORIGIN: z.string().default("http://localhost:3000"),
+  DEFAULT_USER_ID: z.string().uuid().default("00000000-0000-0000-0000-000000000001")
 });
 
 export type Env = z.infer<typeof envVariablesSchema>;
@@ -26,7 +27,9 @@ export const parseEnv = ({
         process.env.DATABASE_URL ??
         "postgres://memocards:memocards@localhost:5432/memocards?sslmode=disable",
       CORS_ORIGIN: process.env.CORS_ORIGIN ?? "http://localhost:3000",
-      PORT: process.env.PORT ?? "8000"
+      PORT: process.env.PORT ?? "8000",
+      DEFAULT_USER_ID:
+        process.env.DEFAULT_USER_ID ?? "00000000-0000-0000-0000-000000000001"
     });
 
     return env;

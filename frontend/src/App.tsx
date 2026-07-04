@@ -1,16 +1,21 @@
+import { useEffect, useState } from "react";
+import { DeckPage } from "./deck/deck-page";
+import { DecksPage } from "./deck/decks-page";
 import "./App.css";
+import { routeFromLocation, type Route } from "./shared/navigation";
 
 export function App() {
-  return (
-    <main className="welcome-page">
-      <section className="welcome-panel">
-        <p className="eyebrow">Memocards</p>
-        <h1>Welcome to your new flashcards workspace.</h1>
-        <p className="intro">
-          The frontend is now running as its own React app, ready to consume the
-          dedicated Memocards API.
-        </p>
-      </section>
-    </main>
+  const [route, setRoute] = useState<Route>(() => routeFromLocation());
+
+  useEffect(() => {
+    const onPopState = () => setRoute(routeFromLocation());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  return route.name === "deck" ? (
+    <DeckPage deckId={route.deckId} />
+  ) : (
+    <DecksPage />
   );
 }
