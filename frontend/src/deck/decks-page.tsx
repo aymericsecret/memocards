@@ -1,40 +1,52 @@
-import { ArrowRight, BookOpen, MoreHorizontal, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { ArrowRight, BookOpen, MoreHorizontal, Play, Plus, Star } from "lucide-react";
+import { useState } from "react";
 import { Button } from "../design-system";
-import { api } from "../shared/api";
 import { formatLastReview } from "../shared/format";
 import { navigate } from "../shared/navigation";
-import type { DeckDetail, DeckSummary } from "../shared/types";
+import type { ReviewType } from "../shared/types";
+import { useCreateDeckMutation, useDecksQuery } from "./deck-queries";
 import { NewDeckModal } from "./new-deck-modal";
 
+type GroupKey = keyof ReviewType["groups"];
+
+const groupLabels: Array<[GroupKey, string]> = [
+  ["new", "Nouvelles"],
+  ["now", "Maintenant"],
+  ["in1h", "< 1h"],
+  ["in24h", "< 24h"],
+  ["tomorrow", "Demain"],
+  ["inWeek", "< 1 sem."],
+  ["later", "> 1 sem."]
+];
+
+const groupColors: Record<GroupKey, string> = {
+  new: "hsl(210 80% 65%)",
+  now: "hsl(355 85% 68%)",
+  in1h: "hsl(20 90% 65%)",
+  in24h: "hsl(40 90% 62%)",
+  tomorrow: "hsl(150 70% 55%)",
+  inWeek: "hsl(180 60% 55%)",
+  later: "hsl(260 55% 70%)"
+};
+
 export function DecksPage() {
-  const [decks, setDecks] = useState<DeckSummary[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [selectionMap, setSelectionMap] = useState<Record<string, GroupKey[]>>({});
+  const decksQuery = useDecksQuery();
+  const createDeckMutation = useCreateDeckMutation();
+  const decks = decksQuery.data ?? [];
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const data = await api<{ decks: DeckSummary[] }>("/decks");
-    setDecks(data.decks);
-    setLoading(false);
-  }, []);
+  const selectedCount = (reviewType: ReviewType) =>
+    (selectionMap[reviewType.id] ?? []).reduce(
+      (sum, key) => sum + reviewType.groups[key],
+      0
+    );
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const createDeck = async (input: {
-    name: string;
-    description: string;
-    sideLabels: string[];
-  }) => {
-    const deck = await api<DeckDetail>("/decks", {
-      method: "POST",
-      body: JSON.stringify(input)
-    });
-
-    setCreating(false);
-    navigate(`/deck/${deck.id}`);
+  const startReview = (reviewType: ReviewType) => {
+    const selected = selectionMap[reviewType.id] ?? [];
+    const query = new URLSearchParams();
+    if (selected.length > 0) query.set("groups", selected.join(","));
+    navigate(`/review-type/${reviewType.id}${query.toString() ? `?${query.toString()}` : ""}`);
   };
 
   return (
@@ -68,7 +80,7 @@ export function DecksPage() {
           </Button>
         </div>
 
-        {loading ? (
+        {decksQuery.isLoading ? (
           <p className="muted">Chargement...</p>
         ) : decks.length === 0 ? (
           <section className="empty-card">
@@ -100,6 +112,52 @@ export function DecksPage() {
                     Ouvrir <ArrowRight size={14} />
                   </Button>
                 </div>
+                <div className="deck-card-reviews">
+                  {deck.reviewTypes.length === 0 ? (
+                    <p className="deck-review-empty">
+                      Aucun type de revision - ouvrez le paquet pour en creer un.
+                    </p>
+                  ) : (
+                    deck.reviewTypes.map((reviewType) => {
+                      const selected = selectionMap[reviewType.id] ?? [];
+                      const count = selected.length > 0 ? selectedCount(reviewType) : reviewType.dueCount;
+
+                      return (
+                        <div className="deck-review-row" key={reviewType.id}>
+                          <div className="deck-review-row-head">
+                            <div className="deck-review-title">
+                              <h4>{reviewType.name}</h4>
+                              {reviewType.isDefault && (
+                                <Star size={14} className="default-star" fill="currentColor" />
+                              )}
+                            </div>
+                            <div className="deck-review-start">
+                              <span className={count > 0 ? "" : "muted-count"}>{count}</span>
+                              <button
+                                aria-label="Reviser"
+                                disabled={count === 0}
+                                onClick={() => startReview(reviewType)}
+                                type="button"
+                              >
+                                <Play size={14} fill="currentColor" />
+                              </button>
+                            </div>
+                          </div>
+                          <DashboardReviewGroupsBar
+                            groups={reviewType.groups}
+                            selected={new Set(selected)}
+                            onSelectionChange={(next) =>
+                              setSelectionMap((previous) => ({
+                                ...previous,
+                                [reviewType.id]: Array.from(next)
+                              }))
+                            }
+                          />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </article>
             ))}
           </div>
@@ -109,9 +167,80 @@ export function DecksPage() {
       {creating && (
         <NewDeckModal
           onClose={() => setCreating(false)}
-          onCreate={(input) => void createDeck(input)}
+          onCreate={(input) => {
+            createDeckMutation.mutate(input, {
+              onSuccess: () => setCreating(false)
+            });
+          }}
         />
       )}
+    </div>
+  );
+}
+
+function DashboardReviewGroupsBar({
+  groups,
+  selected,
+  onSelectionChange
+}: {
+  groups: ReviewType["groups"];
+  selected: Set<GroupKey>;
+  onSelectionChange: (selected: Set<GroupKey>) => void;
+}) {
+  const total = Object.values(groups).reduce((sum, value) => sum + value, 0);
+
+  if (total === 0) return null;
+
+  const toggleGroup = (key: GroupKey) => {
+    const next = new Set(selected);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onSelectionChange(next);
+  };
+
+  return (
+    <div className="dashboard-review-groups">
+      <div className="dashboard-review-groups-stacked" aria-label="Repartition des revisions">
+        {groupLabels.map(([key, label]) => {
+          const count = groups[key];
+          if (count === 0) return null;
+          const isSelected = selected.has(key);
+
+          return (
+            <button
+              key={key}
+              title={`${label}: ${count}`}
+              onClick={() => toggleGroup(key)}
+              style={{
+                backgroundColor: groupColors[key],
+                opacity: selected.size === 0 || isSelected ? 1 : 0.25,
+                width: `${(count / total) * 100}%`
+              }}
+              type="button"
+            />
+          );
+        })}
+      </div>
+      <div className="dashboard-review-groups-legend">
+        {groupLabels.map(([key, label]) => {
+          const count = groups[key];
+          if (count === 0) return null;
+          const isSelected = selected.has(key);
+
+          return (
+            <button
+              className={isSelected ? "selected" : ""}
+              key={key}
+              onClick={() => toggleGroup(key)}
+              style={{ opacity: selected.size === 0 || isSelected ? 1 : 0.4 }}
+              type="button"
+            >
+              <span style={{ backgroundColor: groupColors[key] }} />
+              {label} ({count})
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -33,6 +33,20 @@ export function CardFilters({
   onSideFiltersChange,
   onSortChange
 }: CardFiltersProps) {
+  const sortOptions: Array<{
+    dir: "asc" | "desc";
+    field: "created_at" | "last_review";
+    label: string;
+  }> = [
+    { field: "created_at", dir: "desc", label: "Creation recente" },
+    { field: "created_at", dir: "asc", label: "Creation ancienne" },
+    { field: "last_review", dir: "desc", label: "Revision recente" },
+    { field: "last_review", dir: "asc", label: "Revision ancienne" }
+  ];
+  const currentSortLabel =
+    sortOptions.find((option) => option.field === sortField && option.dir === sortDir)?.label ??
+    "Tri";
+
   return (
     <div className="table-toolbar">
       <label className="search-box">
@@ -44,21 +58,26 @@ export function CardFilters({
         />
       </label>
 
-      <select
-        value={`${sortField}:${sortDir}`}
-        onChange={(event) => {
-          const [field, dir] = event.target.value.split(":") as [
-            "created_at" | "last_review",
-            "asc" | "desc"
-          ];
-          onSortChange(field, dir);
-        }}
-      >
-        <option value="created_at:desc">Creation recente</option>
-        <option value="created_at:asc">Creation ancienne</option>
-        <option value="last_review:desc">Derniere revision recente</option>
-        <option value="last_review:asc">Derniere revision ancienne</option>
-      </select>
+      <FilterMenu label={currentSortLabel}>
+        <div className="filter-panel option-panel">
+          {sortOptions.map((option) => {
+            const selected = option.field === sortField && option.dir === sortDir;
+
+            return (
+              <button
+                className={selected ? "option-row selected" : "option-row"}
+                data-close-menu
+                key={`${option.field}:${option.dir}`}
+                onClick={() => onSortChange(option.field, option.dir)}
+                type="button"
+              >
+                <span>{option.label}</span>
+                {selected && <Check size={16} />}
+              </button>
+            );
+          })}
+        </div>
+      </FilterMenu>
 
       <FilterMenu label="Tags">
         <div className="filter-panel">

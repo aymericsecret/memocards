@@ -3,15 +3,16 @@ import { Button } from "./button";
 
 interface ModalProps {
   children: ReactNode;
+  className?: string;
   labelledBy: string;
   onClose: () => void;
 }
 
-export function Modal({ children, labelledBy, onClose }: ModalProps) {
+export function Modal({ children, className = "", labelledBy, onClose }: ModalProps) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
-        className="modal-panel"
+        className={["modal-panel", className].filter(Boolean).join(" ")}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}

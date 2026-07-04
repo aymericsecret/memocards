@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { Button, Field, Modal, ModalHeader } from "../design-system";
+import { Button, ConfirmDialog, Field, Modal, ModalHeader } from "../design-system";
 
 interface CreateDeckInput {
   description: string;
@@ -17,6 +17,7 @@ export function NewDeckModal({ onClose, onCreate }: NewDeckModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [sideLabels, setSideLabels] = useState(["Recto", "Verso"]);
+  const [sideIndexToDelete, setSideIndexToDelete] = useState<number | null>(null);
 
   const canCreate =
     name.trim().length > 0 &&
@@ -76,11 +77,7 @@ export function NewDeckModal({ onClose, onCreate }: NewDeckModalProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() =>
-                    setSideLabels((current) =>
-                      current.filter((_, itemIndex) => itemIndex !== index)
-                    )
-                  }
+                  onClick={() => setSideIndexToDelete(index)}
                   aria-label="Supprimer la face"
                 >
                   x
@@ -101,6 +98,21 @@ export function NewDeckModal({ onClose, onCreate }: NewDeckModalProps) {
       <Button className="modal-submit" disabled={!canCreate} onClick={submit}>
         Creer le paquet
       </Button>
+
+      {sideIndexToDelete !== null && (
+        <ConfirmDialog
+          description={`La face "${sideLabels[sideIndexToDelete] || `Face ${sideIndexToDelete + 1}`}" sera retiree de ce nouveau paquet.`}
+          labelledBy="delete-side-title"
+          title="Supprimer cette face ?"
+          onCancel={() => setSideIndexToDelete(null)}
+          onConfirm={() => {
+            setSideLabels((current) =>
+              current.filter((_, itemIndex) => itemIndex !== sideIndexToDelete)
+            );
+            setSideIndexToDelete(null);
+          }}
+        />
+      )}
     </Modal>
   );
 }

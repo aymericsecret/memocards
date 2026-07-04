@@ -1,18 +1,37 @@
-import { ArrowLeft, MoreHorizontal, TableIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, ListChecks, Play, Plus, TableIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createCardSidesPayload,
+  useCreateCardMutation,
+  useDeckCardsQuery,
+  useDeleteCardMutation,
+  useUpdateCardMutation
+} from "../cards/card-queries";
 import { CardFilters } from "../cards/card-filters";
+import { CardDetailModal } from "../cards/card-detail-modal";
 import { CardTable } from "../cards/card-table";
-import { Button } from "../design-system";
-import { api } from "../shared/api";
+import { NewCardModal } from "../cards/new-card-modal";
+import { ActionMenu, ActionMenuItem, Button, ConfirmDialog } from "../design-system";
+import { ReviewTypesTab } from "../review/review-types-tab";
+import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
-import type { CardRow, DeckDetail, SideTemplate } from "../shared/types";
+import type { CardRow, SideTemplate } from "../shared/types";
+import { DeckActionsMenu } from "./deck-actions-menu";
+import { useDeckQuery, useDeleteDeckMutation } from "./deck-queries";
+import { DeckSettingsModal } from "./deck-settings-modal";
+import { DeckStatsTab } from "./deck-stats-tab";
+import { DeckTagsModal } from "./deck-tags-modal";
 
 export function DeckPage({ deckId }: { deckId: string }) {
-  const [deck, setDeck] = useState<DeckDetail | null>(null);
-  const [cards, setCards] = useState<CardRow[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"cards" | "review-types" | "stats">("cards");
+  const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CardRow | null>(null);
+  const [isDeleteDeckOpen, setIsDeleteDeckOpen] = useState(false);
+  const [isDeckSettingsOpen, setIsDeckSettingsOpen] = useState(false);
+  const [isDeckTagsOpen, setIsDeckTagsOpen] = useState(false);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
+  const [newTagIds, setNewTagIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortField, setSortField] = useState<"created_at" | "last_review">("created_at");
@@ -21,6 +40,9 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sideFilters, setSideFilters] = useState<Record<number, "filled" | "empty">>({});
   const tableRef = useRef<HTMLDivElement>(null);
+  const deckQuery = useDeckQuery(deckId);
+  const reviewTypesQuery = useReviewTypesQuery(deckId);
+  const deck = deckQuery.data ?? null;
 
   const templates = useMemo(
     () =>
@@ -54,51 +76,41 @@ export function DeckPage({ deckId }: { deckId: string }) {
     [sideFilters]
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const query = new URLSearchParams({
-      pageSize: "100",
+  const cardFilters = useMemo(
+    () => ({
+      search: debouncedSearch,
+      selectedStatuses,
+      selectedTagIds,
+      sideEmpty,
+      sideFilled,
+      sortDir,
       sortField,
-      sortDir
-    });
+      reviewTypeId: deck?.defaultReviewTypeId ?? null
+    }),
+    [
+      debouncedSearch,
+      selectedStatuses,
+      selectedTagIds,
+      sideEmpty,
+      sideFilled,
+      sortDir,
+      sortField,
+      deck?.defaultReviewTypeId
+    ]
+  );
 
-    if (debouncedSearch.trim()) query.set("search", debouncedSearch.trim());
-    if (selectedTagIds.length) query.set("tagIds", selectedTagIds.join(","));
-    if (selectedStatuses.length) {
-      query.set("statuses", selectedStatuses.join(","));
-      if (deck?.defaultReviewTypeId) {
-        query.set("reviewTypeId", deck.defaultReviewTypeId);
-      }
-    }
-    if (sideFilled.length) query.set("sideFilled", sideFilled.join(","));
-    if (sideEmpty.length) query.set("sideEmpty", sideEmpty.join(","));
-
-    const [deckData, cardData] = await Promise.all([
-      api<{ deck: DeckDetail }>(`/decks/${deckId}`),
-      api<{ cards: CardRow[]; totalCount: number }>(
-        `/decks/${deckId}/cards?${query.toString()}`
-      )
-    ]);
-
-    setDeck(deckData.deck);
-    setCards(cardData.cards);
-    setTotalCount(cardData.totalCount);
-    setLoading(false);
-  }, [
-    deckId,
-    debouncedSearch,
-    sortField,
-    sortDir,
-    selectedTagIds,
-    selectedStatuses,
-    sideFilled,
-    sideEmpty,
-    deck?.defaultReviewTypeId
-  ]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const cardsQuery = useDeckCardsQuery(deckId, cardFilters);
+  const cards = cardsQuery.data?.cards ?? [];
+  const totalCount = cardsQuery.data?.totalCount ?? 0;
+  const reviewTypes = reviewTypesQuery.data ?? [];
+  const defaultReviewType =
+    reviewTypes.find((reviewType) => reviewType.isDefault) ??
+    reviewTypes.find((reviewType) => reviewType.id === deck?.defaultReviewTypeId) ??
+    null;
+  const createCardMutation = useCreateCardMutation(deckId);
+  const updateCardMutation = useUpdateCardMutation(deckId);
+  const deleteCardMutation = useDeleteCardMutation(deckId);
+  const deleteDeckMutation = useDeleteDeckMutation();
 
   const focusCell = useCallback((row: string, col: number) => {
     const next = tableRef.current?.querySelector<HTMLInputElement>(
@@ -112,20 +124,21 @@ export function DeckPage({ deckId }: { deckId: string }) {
     const filled = Object.values(newRow).filter((value) => value.trim()).length;
     if (filled < 2) return;
 
-    await api(`/decks/${deckId}/cards`, {
-      method: "POST",
-      body: JSON.stringify({
-        sides: templates.map((template) => ({
-          position: template.position,
-          label: template.label,
-          content: newRow[template.position] ?? ""
-        }))
-      })
+    await createCardMutation.mutateAsync({
+      sides: createCardSidesPayload(templates, newRow),
+      tagIds: newTagIds
     });
 
     setNewRow({});
-    await load();
+    setNewTagIds([]);
     setTimeout(() => focusCell("__new__", 0), 50);
+  };
+
+  const addCardFromModal = async (
+    sides: Array<{ content: string; label: string; position: number }>,
+    tagIds: string[]
+  ) => {
+    await createCardMutation.mutateAsync({ sides, tagIds });
   };
 
   const updateCardSide = async (
@@ -136,45 +149,25 @@ export function DeckPage({ deckId }: { deckId: string }) {
     const existingSide = card.sides.find((side) => side.position === template.position);
     if (existingSide?.content === content) return;
 
-    setCards((currentCards) =>
-      currentCards.map((currentCard) =>
-        currentCard.id === card.id
-          ? {
-              ...currentCard,
-              sides: [
-                ...currentCard.sides.filter((side) => side.position !== template.position),
-                {
-                  id: existingSide?.id ?? `${card.id}-${template.position}`,
-                  label: template.label,
-                  position: template.position,
-                  content
-                }
-              ].sort((a, b) => a.position - b.position)
-            }
-          : currentCard
-      )
-    );
-
-    await api(`/cards/${card.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        sides: [
-          {
-            position: template.position,
-            label: template.label,
-            content
-          }
-        ]
-      })
+    await updateCardMutation.mutateAsync({
+      cardId: card.id,
+      sides: [
+        {
+          position: template.position,
+          label: template.label,
+          content
+        }
+      ]
     });
   };
 
-  const deleteCard = async (cardId: string) => {
-    await api(`/cards/${cardId}`, { method: "DELETE" });
-    await load();
+  const deleteSelectedCard = async () => {
+    if (!cardToDelete) return;
+    await deleteCardMutation.mutateAsync(cardToDelete.id);
+    setCardToDelete(null);
   };
 
-  if (loading && !deck) {
+  if (deckQuery.isLoading && !deck) {
     return <div className="loading-page">Chargement...</div>;
   }
 
@@ -182,71 +175,205 @@ export function DeckPage({ deckId }: { deckId: string }) {
     return <div className="loading-page">Paquet introuvable</div>;
   }
 
+  const reviewStartControl = defaultReviewType ? (
+    <div
+      className={
+        reviewTypes.length > 1
+          ? "deck-start-review-group has-review-type-menu"
+          : "deck-start-review-group"
+      }
+    >
+      <Button
+        className="deck-start-review"
+        disabled={defaultReviewType.dueCount === 0}
+        onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
+      >
+        <Play size={16} fill="currentColor" />
+        <span className="review-button-label">Reviser</span>
+        <span>{defaultReviewType.dueCount}</span>
+      </Button>
+      {reviewTypes.length > 1 && (
+        <ActionMenu className="deck-review-type-menu" label="Choisir le type de revision">
+          {reviewTypes.map((reviewType) => (
+            <ActionMenuItem
+              disabled={reviewType.dueCount === 0}
+              key={reviewType.id}
+              onClick={() => navigate(`/review-type/${reviewType.id}`)}
+            >
+              <Play size={14} fill="currentColor" />
+              <span className="review-type-menu-label">{reviewType.name}</span>
+              <span className="review-type-menu-count">{reviewType.dueCount}</span>
+            </ActionMenuItem>
+          ))}
+        </ActionMenu>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="container deck-topbar">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Retour">
-            <ArrowLeft size={18} />
-          </Button>
-          <span className="card-count">
-            {totalCount} carte{totalCount !== 1 ? "s" : ""}
-          </span>
-          <Button className="push-right" variant="ghost" size="icon" aria-label="Menu">
-            <MoreHorizontal size={18} />
-          </Button>
+          <div className="deck-topbar-left">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Retour">
+              <ArrowLeft size={18} />
+            </Button>
+            <div className="deck-topbar-title">
+              <h1>{deck.name}</h1>
+              <span>
+                {totalCount} carte{totalCount !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+          <div className="deck-topbar-actions">
+            {reviewStartControl}
+            <DeckActionsMenu
+              cards={cards}
+              deckName={deck.name}
+              templates={templates}
+              onDeleteDeck={() => setIsDeleteDeckOpen(true)}
+              onOpenSettings={() => setIsDeckSettingsOpen(true)}
+              onOpenTags={() => setIsDeckTagsOpen(true)}
+            />
+          </div>
         </div>
       </header>
 
-      <main className="container deck-main">
-        <div className="deck-heading">
+      <main className={activeTab === "cards" ? "container deck-main cards-mode" : "container deck-main"}>
+        <div className="mobile-deck-heading">
           <h1>{deck.name}</h1>
-          {deck.description && <p>{deck.description}</p>}
-          <p className="mobile-count">
+          <span>
             {totalCount} carte{totalCount !== 1 ? "s" : ""}
-          </p>
+          </span>
         </div>
+        {deck.description && <p className="deck-description">{deck.description}</p>}
 
         <div className="tabs-list">
-          <button className="tab active">
+          <button
+            className={activeTab === "cards" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("cards")}
+          >
             <TableIcon size={14} /> Cartes
+          </button>
+          <button
+            className={activeTab === "review-types" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("review-types")}
+          >
+            <ListChecks size={14} /> Types de revision
+          </button>
+          <button
+            className={activeTab === "stats" ? "tab active" : "tab"}
+            onClick={() => setActiveTab("stats")}
+          >
+            <BarChart3 size={14} /> Statistiques
           </button>
         </div>
 
-        <CardFilters
-          search={search}
-          selectedStatuses={selectedStatuses}
-          selectedTagIds={selectedTagIds}
-          sideFilters={sideFilters}
-          sortDir={sortDir}
-          sortField={sortField}
-          tags={deck.tags}
-          templates={templates}
-          onSearchChange={setSearch}
-          onSelectedStatusesChange={setSelectedStatuses}
-          onSelectedTagIdsChange={setSelectedTagIds}
-          onSideFiltersChange={setSideFilters}
-          onSortChange={(field, dir) => {
-            setSortField(field);
-            setSortDir(dir);
-          }}
-        />
+        {activeTab === "cards" ? (
+          <div className="cards-tab-content">
+            <CardFilters
+              search={search}
+              selectedStatuses={selectedStatuses}
+              selectedTagIds={selectedTagIds}
+              sideFilters={sideFilters}
+              sortDir={sortDir}
+              sortField={sortField}
+              tags={deck.tags}
+              templates={templates}
+              onSearchChange={setSearch}
+              onSelectedStatusesChange={setSelectedStatuses}
+              onSelectedTagIdsChange={setSelectedTagIds}
+              onSideFiltersChange={setSideFilters}
+              onSortChange={(field, dir) => {
+                setSortField(field);
+                setSortDir(dir);
+              }}
+            />
 
-        <CardTable
-          cards={cards}
-          newRow={newRow}
-          tableRef={tableRef}
-          templates={templates}
-          totalCount={totalCount}
-          onAddCard={() => void addCard()}
-          onDeleteCard={(cardId) => void deleteCard(cardId)}
-          onFocusCell={focusCell}
-          onNewRowChange={setNewRow}
-          onUpdateCardSide={(card, template, content) =>
-            void updateCardSide(card, template, content)
-          }
-        />
+            <Button
+              className="mobile-create-card-button"
+              onClick={() => setIsNewCardModalOpen(true)}
+            >
+              <Plus size={16} /> Creer une carte
+            </Button>
+
+            <CardTable
+              allTags={deck.tags}
+              cards={cards}
+              deckId={deckId}
+              newRow={newRow}
+              newTagIds={newTagIds}
+              tableRef={tableRef}
+              templates={templates}
+              totalCount={totalCount}
+              onAddCard={() => void addCard()}
+              onDeleteCard={setCardToDelete}
+              onFocusCell={focusCell}
+              onNewRowChange={setNewRow}
+              onNewTagIdsChange={setNewTagIds}
+              onOpenCard={setSelectedCardId}
+              onUpdateCardSide={(card, template, content) =>
+                void updateCardSide(card, template, content)
+              }
+            />
+          </div>
+        ) : activeTab === "review-types" ? (
+          <ReviewTypesTab
+            deckId={deckId}
+            reviewTypes={reviewTypes}
+            tags={deck.tags}
+            templates={templates}
+          />
+        ) : (
+          <DeckStatsTab deckId={deckId} />
+        )}
       </main>
+
+      <NewCardModal
+        allTags={deck.tags}
+        deckId={deckId}
+        isOpen={isNewCardModalOpen}
+        templates={templates}
+        onClose={() => setIsNewCardModalOpen(false)}
+        onCreateCard={addCardFromModal}
+      />
+      <CardDetailModal
+        allTags={deck.tags}
+        cardId={selectedCardId}
+        deckId={deckId}
+        onClose={() => setSelectedCardId(null)}
+      />
+      <DeckTagsModal
+        deckId={deckId}
+        isOpen={isDeckTagsOpen}
+        tags={deck.tags}
+        onClose={() => setIsDeckTagsOpen(false)}
+      />
+      <DeckSettingsModal
+        deck={deck}
+        isOpen={isDeckSettingsOpen}
+        onClose={() => setIsDeckSettingsOpen(false)}
+      />
+      {cardToDelete && (
+        <ConfirmDialog
+          description="Cette carte, ses tags et toute sa progression de revision seront definitivement supprimes."
+          isPending={deleteCardMutation.isPending}
+          labelledBy="delete-card-title"
+          title="Supprimer cette carte ?"
+          onCancel={() => setCardToDelete(null)}
+          onConfirm={() => void deleteSelectedCard()}
+        />
+      )}
+      {isDeleteDeckOpen && (
+        <ConfirmDialog
+          description={`Le paquet "${deck.name}", ses cartes, ses tags et toute sa progression seront definitivement supprimes. Cette action est irreversible.`}
+          isPending={deleteDeckMutation.isPending}
+          labelledBy="delete-deck-title"
+          title="Supprimer ce paquet ?"
+          onCancel={() => setIsDeleteDeckOpen(false)}
+          onConfirm={() => void deleteDeckMutation.mutateAsync(deckId)}
+        />
+      )}
     </div>
   );
 }

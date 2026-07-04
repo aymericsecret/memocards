@@ -11,9 +11,18 @@ export async function buildServer() {
   const app = Fastify({
     logger: env.NODE_ENV !== "test"
   });
+  const allowedOrigins = new Set(env.CORS_ALLOWED_ORIGINS);
 
   await app.register(cors, {
-    origin: env.CORS_ORIGIN
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
+    credentials: true
   });
 
   app.setErrorHandler((error, request, reply) => {
@@ -22,6 +31,19 @@ export async function buildServer() {
         error: "Bad Request",
         message: "Invalid request parameters",
         issues: error.issues
+      });
+      return;
+    }
+
+    const maybeHttpError = error as Error & { statusCode?: number };
+    if (
+      typeof maybeHttpError.statusCode === "number" &&
+      maybeHttpError.statusCode >= 400 &&
+      maybeHttpError.statusCode < 500
+    ) {
+      void reply.status(maybeHttpError.statusCode).send({
+        error: maybeHttpError.statusCode === 404 ? "Not Found" : "Bad Request",
+        message: maybeHttpError.message
       });
       return;
     }
