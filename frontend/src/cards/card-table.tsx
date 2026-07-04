@@ -15,7 +15,7 @@ interface CardTableProps {
   templates: SideTemplate[];
   totalCount: number;
   onAddCard: () => void;
-  onDeleteCard: (cardId: string) => void;
+  onDeleteCard: (card: CardRow) => void;
   onFocusCell: (row: string, col: number) => void;
   onNewRowChange: (value: Record<number, string>) => void;
   onNewTagIdsChange: (tagIds: string[]) => void;
@@ -166,7 +166,7 @@ export function CardTable({
                     <Button
                       className="danger"
                       size="icon"
-                      onClick={() => onDeleteCard(card.id)}
+                      onClick={() => onDeleteCard(card)}
                       aria-label="Supprimer"
                     >
                       <Trash2 size={15} />

@@ -493,4 +493,18 @@ export class DecksRepository {
 
     return this.getDeck(deckId, input.userId);
   }
+
+  async deleteDeck(deckId: string, userId: string) {
+    const result = await this.database.query<{ id: string }>(
+      `
+      delete from decks
+      where id = $1::uuid
+        and user_id = $2::uuid
+      returning id
+      `,
+      [deckId, userId]
+    );
+
+    return { id: result.rows[0]?.id ?? null };
+  }
 }

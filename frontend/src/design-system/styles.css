@@ -1106,6 +1106,7 @@ td input:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   height: 30px;
   border: 0;
   border-radius: calc(var(--radius) - 4px);
@@ -1120,6 +1121,22 @@ td input:focus {
   color: hsl(var(--foreground));
   background: hsl(var(--card));
   box-shadow: 0 1px 2px hsl(var(--foreground) / 0.08);
+}
+
+.card-detail-tabs {
+  width: 100%;
+  height: 42px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 5px;
+}
+
+.card-detail-tabs .modal-tab {
+  height: 32px;
+}
+
+.card-detail-tabs .modal-tab svg {
+  color: currentColor;
 }
 
 .card-detail-preview {
@@ -1790,6 +1807,37 @@ td input:focus {
   background: hsl(var(--primary) / 0.05);
 }
 
+.review-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background: hsl(var(--card));
+}
+
+.review-tag-shortcut {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.review-tag-shortcut > span {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.review-tag-shortcut .tag-chip-list {
+  justify-content: flex-end;
+}
+
 .review-card p {
   margin: 0 0 8px;
   color: hsl(var(--muted-foreground));
@@ -1948,6 +1996,15 @@ td input:focus {
   .review-topbar-inner,
   .review-main {
     width: min(100% - 24px, 512px);
+  }
+
+  .review-card-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .review-tag-shortcut {
+    justify-content: space-between;
   }
 
   .rating-grid {

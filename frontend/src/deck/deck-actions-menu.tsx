@@ -14,6 +14,7 @@ interface DeckActionsMenuProps {
   cards: CardRow[];
   deckName: string;
   templates: SideTemplate[];
+  onDeleteDeck: () => void;
 }
 
 function csvValue(value: string) {
@@ -40,7 +41,7 @@ function exportCards(deckName: string, templates: SideTemplate[], cards: CardRow
   URL.revokeObjectURL(url);
 }
 
-export function DeckActionsMenu({ cards, deckName, templates }: DeckActionsMenuProps) {
+export function DeckActionsMenu({ cards, deckName, onDeleteDeck, templates }: DeckActionsMenuProps) {
   return (
     <ActionMenu className="push-right" label="Menu du paquet">
       <ActionMenuItem pending>
@@ -61,7 +62,7 @@ export function DeckActionsMenu({ cards, deckName, templates }: DeckActionsMenuP
       <ActionMenuItem pending>
           <Settings size={15} /> Reglages du paquet
       </ActionMenuItem>
-      <ActionMenuItem pending className="danger-menu-item">
+      <ActionMenuItem className="danger-menu-item" onClick={onDeleteDeck}>
           <Trash2 size={15} /> Supprimer
       </ActionMenuItem>
     </ActionMenu>

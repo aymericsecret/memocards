@@ -98,6 +98,21 @@ export async function registerDeckRoutes(app: FastifyInstance) {
     return { deck };
   });
 
+  app.delete("/decks/:deckId", async (request, reply) => {
+    const params = paramsSchema.parse(request.params);
+    const repository = Container.get(DecksRepository);
+    const result = await repository.deleteDeck(params.deckId, env.DEFAULT_USER_ID);
+
+    if (!result.id) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "Deck not found"
+      });
+    }
+
+    return result;
+  });
+
   app.get("/decks/:deckId/stats", async (request, reply) => {
     const params = paramsSchema.parse(request.params);
     const repository = Container.get(DecksRepository);

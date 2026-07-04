@@ -6,7 +6,7 @@ import {
   Trash2
 } from "lucide-react";
 import { useState } from "react";
-import { ActionMenu, ActionMenuItem, Button, Modal, ModalHeader } from "../design-system";
+import { ActionMenu, ActionMenuItem, Button, ConfirmDialog } from "../design-system";
 import { navigate } from "../shared/navigation";
 import type { ReviewType, SideTemplate, Tag } from "../shared/types";
 import { NewReviewTypeModal } from "./new-review-type-modal";
@@ -198,23 +198,14 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
         }}
       />
       {deleteReviewType && (
-        <Modal labelledBy="delete-review-type-title" onClose={() => setDeleteReviewType(null)}>
-          <ModalHeader onClose={() => setDeleteReviewType(null)}>
-            <h2 id="delete-review-type-title">Supprimer le type de revision ?</h2>
-          </ModalHeader>
-          <p className="modal-description">
-            Le type "{deleteReviewType.name}" et toute sa progression seront definitivement
-            supprimes. Cette action est irreversible.
-          </p>
-          <div className="modal-actions">
-            <Button variant="outline" onClick={() => setDeleteReviewType(null)}>
-              Annuler
-            </Button>
-            <Button className="danger-primary" onClick={() => void deleteSelectedReviewType()}>
-              Supprimer
-            </Button>
-          </div>
-        </Modal>
+        <ConfirmDialog
+          description={`Le type "${deleteReviewType.name}" et toute sa progression seront definitivement supprimes. Cette action est irreversible.`}
+          isPending={deleteReviewTypeMutation.isPending}
+          labelledBy="delete-review-type-title"
+          title="Supprimer le type de revision ?"
+          onCancel={() => setDeleteReviewType(null)}
+          onConfirm={() => void deleteSelectedReviewType()}
+        />
       )}
     </section>
   );

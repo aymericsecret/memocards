@@ -1,11 +1,14 @@
-import { Brain, CalendarCheck, RotateCcw, TrendingUp, Zap } from "lucide-react";
+import { Brain, CalendarCheck, CreditCard, RotateCcw, TrendingUp, Zap } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Modal, ModalHeader } from "../design-system";
-import type { CardDetail } from "../shared/types";
+import type { CardDetail, Tag } from "../shared/types";
+import { CardTagPicker } from "./card-tag-picker";
 import { useCardDetailQuery } from "./card-queries";
 
 interface CardDetailModalProps {
+  allTags?: Tag[];
   cardId: string | null;
+  deckId?: string;
   onClose: () => void;
 }
 
@@ -18,7 +21,7 @@ const statusLabels = {
 const stateLabels = ["Nouvelle", "En apprentissage", "En revision", "Reapprentissage"];
 const ratingLabels = ["", "A revoir", "Difficile", "Bien", "Facile"];
 
-export function CardDetailModal({ cardId, onClose }: CardDetailModalProps) {
+export function CardDetailModal({ allTags = [], cardId, deckId, onClose }: CardDetailModalProps) {
   const detailQuery = useCardDetailQuery(cardId);
   const card = detailQuery.data ?? null;
 
@@ -32,13 +35,21 @@ export function CardDetailModal({ cardId, onClose }: CardDetailModalProps) {
       {detailQuery.isLoading || !card ? (
         <p className="modal-description">Chargement...</p>
       ) : (
-        <CardDetailContent card={card} />
+        <CardDetailContent allTags={allTags} card={card} deckId={deckId} />
       )}
     </Modal>
   );
 }
 
-function CardDetailContent({ card }: { card: CardDetail }) {
+function CardDetailContent({
+  allTags,
+  card,
+  deckId
+}: {
+  allTags: Tag[];
+  card: CardDetail;
+  deckId?: string;
+}) {
   const [activeTab, setActiveTab] = useState<"card" | "stats">("card");
   const lastReview = card.lastReview
     ? new Date(card.lastReview).toLocaleString("fr-FR", {
@@ -53,20 +64,20 @@ function CardDetailContent({ card }: { card: CardDetail }) {
 
   return (
     <div className="card-detail-body">
-      <div className="modal-tabs-list">
+      <div className="modal-tabs-list card-detail-tabs">
         <button
           className={activeTab === "card" ? "modal-tab active" : "modal-tab"}
           onClick={() => setActiveTab("card")}
           type="button"
         >
-          Carte
+          <CreditCard size={14} /> Carte
         </button>
         <button
           className={activeTab === "stats" ? "modal-tab active" : "modal-tab"}
           onClick={() => setActiveTab("stats")}
           type="button"
         >
-          Stats
+          <Brain size={14} /> Stats
         </button>
       </div>
 
@@ -80,7 +91,14 @@ function CardDetailContent({ card }: { card: CardDetail }) {
           ))}
           <div>
             <p>Tags</p>
-            {card.tags.length > 0 ? (
+            {deckId ? (
+              <CardTagPicker
+                allTags={allTags}
+                cardId={card.id}
+                cardTags={card.tags}
+                deckId={deckId}
+              />
+            ) : card.tags.length > 0 ? (
               <div className="tag-chip-list">
                 {card.tags.map((tag) => (
                   <span className="tag-chip" key={tag.id}>

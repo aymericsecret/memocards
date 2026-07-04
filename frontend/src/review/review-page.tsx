@@ -1,16 +1,20 @@
 import {
   ArrowLeft,
   Check,
+  Pencil,
   Loader2,
   Minus,
   Square,
   X,
   Zap
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Button, Modal, ModalHeader } from "../design-system";
+import { useEffect, useMemo, useState } from "react";
+import { CardTagPicker } from "../cards/card-tag-picker";
+import { createCardSidesPayload, useUpdateCardMutation } from "../cards/card-queries";
+import { Button, Field, Modal, ModalHeader } from "../design-system";
+import { useDeckQuery } from "../deck/deck-queries";
 import { navigate } from "../shared/navigation";
-import type { ReviewCard } from "../shared/types";
+import type { ReviewCard, SideTemplate, Tag } from "../shared/types";
 import {
   useDueReviewCardsQuery,
   useReviewTypeQuery,
@@ -37,12 +41,16 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
   const groups = new URLSearchParams(window.location.search).get("groups");
   const reviewTypeQuery = useReviewTypeQuery(reviewTypeId);
   const reviewType = reviewTypeQuery.data ?? null;
+  const deckQuery = useDeckQuery(reviewType?.deckId ?? null);
+  const deck = deckQuery.data ?? null;
   const cardsQuery = useDueReviewCardsQuery(reviewTypeId, groups);
   const submitReviewMutation = useSubmitReviewMutation(reviewTypeId, reviewType?.deckId ?? null);
+  const updateCardMutation = useUpdateCardMutation(reviewType?.deckId ?? "");
   const [reviewedCardIds, setReviewedCardIds] = useState<string[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [finished, setFinished] = useState(false);
   const [showStopDialog, setShowStopDialog] = useState(false);
+  const [editingCard, setEditingCard] = useState<ReviewCard | null>(null);
 
   const pendingCards = useMemo(
     () =>
@@ -52,6 +60,9 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
     [cardsQuery.data?.cards, reviewedCardIds]
   );
   const current = pendingCards[0] ?? null;
+  const editableCard = editingCard
+    ? pendingCards.find((card) => card.cardId === editingCard.cardId) ?? editingCard
+    : null;
   const totalDue = cardsQuery.data?.totalCount ?? 0;
   const reviewedCount = reviewedCardIds.length;
   const backPath = reviewType?.deckId ? `/deck/${reviewType.deckId}` : "/";
@@ -77,6 +88,18 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
       );
       if (nextCards.length === 0) setFinished(true);
     }
+  };
+
+  const updateReviewCard = async (
+    card: ReviewCard,
+    sides: Array<{ content: string; label: string; position: number }>
+  ) => {
+    await updateCardMutation.mutateAsync({
+      cardId: card.cardId,
+      sides
+    });
+    await cardsQuery.refetch();
+    setEditingCard(null);
   };
 
   if (finished) {
@@ -180,6 +203,23 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
               ))}
             </section>
 
+            <div className="review-card-actions">
+              <Button variant="outline" size="sm" onClick={() => setEditingCard(current)}>
+                <Pencil size={14} /> Modifier
+              </Button>
+              {deck && (
+                <div className="review-tag-shortcut">
+                  <span>Tags</span>
+                  <CardTagPicker
+                    allTags={deck.tags}
+                    cardId={current.cardId}
+                    cardTags={current.tags}
+                    deckId={deck.id}
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="rating-grid">
               {ratingActions.map(({ className, icon: Icon, label, rating }) => (
                 <Button
@@ -217,6 +257,92 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
           </div>
         </Modal>
       )}
+
+      {editingCard && editableCard && (
+        <ReviewCardEditModal
+          allTags={deck?.tags ?? []}
+          card={editableCard}
+          deckId={deck?.id ?? ""}
+          isSaving={updateCardMutation.isPending}
+          templates={deck?.sideTemplates ?? editableCard.sides}
+          onClose={() => setEditingCard(null)}
+          onSave={(sides) => void updateReviewCard(editingCard, sides)}
+        />
+      )}
     </div>
+  );
+}
+
+function ReviewCardEditModal({
+  allTags,
+  card,
+  deckId,
+  isSaving,
+  onClose,
+  onSave,
+  templates
+}: {
+  allTags: Tag[];
+  card: ReviewCard;
+  deckId: string;
+  isSaving: boolean;
+  onClose: () => void;
+  onSave: (sides: Array<{ content: string; label: string; position: number }>) => void;
+  templates: SideTemplate[];
+}) {
+  const [values, setValues] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    setValues(
+      Object.fromEntries(card.sides.map((side) => [side.position, side.content]))
+    );
+  }, [card]);
+
+  const filledSidesCount = Object.values(values).filter((value) => value.trim()).length;
+
+  return (
+    <Modal labelledBy="review-edit-card-title" onClose={onClose}>
+      <ModalHeader onClose={onClose}>
+        <h2 id="review-edit-card-title">Modifier la carte</h2>
+      </ModalHeader>
+
+      <div className="side-list">
+        {templates.map((template) => (
+          <Field key={template.id} label={template.label}>
+            <textarea
+              rows={4}
+              value={values[template.position] ?? ""}
+              onChange={(event) =>
+                setValues({
+                  ...values,
+                  [template.position]: event.target.value
+                })
+              }
+              placeholder={`${template.label}...`}
+            />
+          </Field>
+        ))}
+      </div>
+
+      {deckId && (
+        <Field label="Tags">
+          <CardTagPicker
+            allTags={allTags}
+            cardId={card.cardId}
+            cardTags={card.tags}
+            deckId={deckId}
+          />
+        </Field>
+      )}
+
+      <Button
+        className="modal-submit"
+        disabled={filledSidesCount < 2 || isSaving}
+        onClick={() => onSave(createCardSidesPayload(templates, values))}
+      >
+        {isSaving ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+        Enregistrer
+      </Button>
+    </Modal>
   );
 }

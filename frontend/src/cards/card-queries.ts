@@ -82,6 +82,7 @@ export function useUpdateCardMutation(deckId: string) {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
     }
   });
 }
@@ -141,6 +142,7 @@ export function useAddCardTagMutation(deckId: string) {
       void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
       void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
       void queryClient.invalidateQueries({ queryKey: cardKeys.detail(input.cardId) });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
     }
   });
 }
@@ -157,6 +159,7 @@ export function useRemoveCardTagMutation(deckId: string) {
       void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
       void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
       void queryClient.invalidateQueries({ queryKey: cardKeys.detail(input.cardId) });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
     }
   });
 }

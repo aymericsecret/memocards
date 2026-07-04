@@ -11,19 +11,21 @@ import { CardFilters } from "../cards/card-filters";
 import { CardDetailModal } from "../cards/card-detail-modal";
 import { CardTable } from "../cards/card-table";
 import { NewCardModal } from "../cards/new-card-modal";
-import { ActionMenu, ActionMenuItem, Button } from "../design-system";
+import { ActionMenu, ActionMenuItem, Button, ConfirmDialog } from "../design-system";
 import { ReviewTypesTab } from "../review/review-types-tab";
 import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
 import type { CardRow, SideTemplate } from "../shared/types";
 import { DeckActionsMenu } from "./deck-actions-menu";
-import { useDeckQuery } from "./deck-queries";
+import { useDeckQuery, useDeleteDeckMutation } from "./deck-queries";
 import { DeckStatsTab } from "./deck-stats-tab";
 
 export function DeckPage({ deckId }: { deckId: string }) {
   const [activeTab, setActiveTab] = useState<"cards" | "review-types" | "stats">("cards");
   const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<CardRow | null>(null);
+  const [isDeleteDeckOpen, setIsDeleteDeckOpen] = useState(false);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -104,6 +106,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const createCardMutation = useCreateCardMutation(deckId);
   const updateCardMutation = useUpdateCardMutation(deckId);
   const deleteCardMutation = useDeleteCardMutation(deckId);
+  const deleteDeckMutation = useDeleteDeckMutation();
 
   const focusCell = useCallback((row: string, col: number) => {
     const next = tableRef.current?.querySelector<HTMLInputElement>(
@@ -154,8 +157,10 @@ export function DeckPage({ deckId }: { deckId: string }) {
     });
   };
 
-  const deleteCard = async (cardId: string) => {
-    await deleteCardMutation.mutateAsync(cardId);
+  const deleteSelectedCard = async () => {
+    if (!cardToDelete) return;
+    await deleteCardMutation.mutateAsync(cardToDelete.id);
+    setCardToDelete(null);
   };
 
   if (deckQuery.isLoading && !deck) {
@@ -184,7 +189,12 @@ export function DeckPage({ deckId }: { deckId: string }) {
           >
             <Plus size={18} />
           </Button>
-          <DeckActionsMenu cards={cards} deckName={deck.name} templates={templates} />
+          <DeckActionsMenu
+            cards={cards}
+            deckName={deck.name}
+            templates={templates}
+            onDeleteDeck={() => setIsDeleteDeckOpen(true)}
+          />
         </div>
       </header>
 
@@ -285,7 +295,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
               templates={templates}
               totalCount={totalCount}
               onAddCard={() => void addCard()}
-              onDeleteCard={(cardId) => void deleteCard(cardId)}
+              onDeleteCard={setCardToDelete}
               onFocusCell={focusCell}
               onNewRowChange={setNewRow}
               onNewTagIdsChange={setNewTagIds}
@@ -315,7 +325,32 @@ export function DeckPage({ deckId }: { deckId: string }) {
         onClose={() => setIsNewCardModalOpen(false)}
         onCreateCard={addCardFromModal}
       />
-      <CardDetailModal cardId={selectedCardId} onClose={() => setSelectedCardId(null)} />
+      <CardDetailModal
+        allTags={deck.tags}
+        cardId={selectedCardId}
+        deckId={deckId}
+        onClose={() => setSelectedCardId(null)}
+      />
+      {cardToDelete && (
+        <ConfirmDialog
+          description="Cette carte, ses tags et toute sa progression de revision seront definitivement supprimes."
+          isPending={deleteCardMutation.isPending}
+          labelledBy="delete-card-title"
+          title="Supprimer cette carte ?"
+          onCancel={() => setCardToDelete(null)}
+          onConfirm={() => void deleteSelectedCard()}
+        />
+      )}
+      {isDeleteDeckOpen && (
+        <ConfirmDialog
+          description={`Le paquet "${deck.name}", ses cartes, ses tags et toute sa progression seront definitivement supprimes. Cette action est irreversible.`}
+          isPending={deleteDeckMutation.isPending}
+          labelledBy="delete-deck-title"
+          title="Supprimer ce paquet ?"
+          onCancel={() => setIsDeleteDeckOpen(false)}
+          onConfirm={() => void deleteDeckMutation.mutateAsync(deckId)}
+        />
+      )}
     </div>
   );
 }

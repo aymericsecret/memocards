@@ -11,7 +11,7 @@ export interface CreateDeckInput {
 
 export const deckKeys = {
   all: ["decks"] as const,
-  detail: (deckId: string) => ["deck", deckId] as const
+  detail: (deckId: string | null) => ["deck", deckId] as const
 };
 
 export function useDecksQuery() {
@@ -24,8 +24,9 @@ export function useDecksQuery() {
   });
 }
 
-export function useDeckQuery(deckId: string) {
+export function useDeckQuery(deckId: string | null) {
   return useQuery({
+    enabled: Boolean(deckId),
     queryKey: deckKeys.detail(deckId),
     queryFn: async () => {
       const data = await api<{ deck: DeckDetail }>(`/decks/${deckId}`);
@@ -47,6 +48,21 @@ export function useCreateDeckMutation() {
       void queryClient.invalidateQueries({ queryKey: deckKeys.all });
       queryClient.setQueryData(deckKeys.detail(deck.id), deck);
       navigate(`/deck/${deck.id}`);
+    }
+  });
+}
+
+export function useDeleteDeckMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (deckId: string) =>
+      api<{ id: string }>(`/decks/${deckId}`, {
+        method: "DELETE"
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+      navigate("/");
     }
   });
 }
