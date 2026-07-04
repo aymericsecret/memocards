@@ -48,3 +48,10 @@ npm run dev:backend
 The frontend is available at `http://localhost:3000`.
 
 The backend healthcheck is available at `GET http://localhost:8000/healthcheck`.
+
+Initial backend API endpoints:
+
+- `GET http://localhost:8000/api/decks/:deckId/cards`
+  - Query params: `search`, `tagIds`, `reviewTypeId`, `groups`, `sideFilled`, `sideEmpty`, `sortField`, `sortDir`, `page`, `pageSize`
+- `GET http://localhost:8000/api/review-types/:reviewTypeId/due-cards`
+  - Query params: `groups`, `page`, `pageSize`
