@@ -1,11 +1,16 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Eye, Plus, Trash2 } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "../design-system";
-import type { CardRow, SideTemplate } from "../shared/types";
+import type { CardRow, SideTemplate, Tag } from "../shared/types";
+import { CardTagPicker } from "./card-tag-picker";
+import { NewCardTagSelector } from "./new-card-tag-selector";
 
 interface CardTableProps {
+  allTags: Tag[];
   cards: CardRow[];
+  deckId: string;
   newRow: Record<number, string>;
+  newTagIds: string[];
   tableRef: RefObject<HTMLDivElement | null>;
   templates: SideTemplate[];
   totalCount: number;
@@ -13,12 +18,17 @@ interface CardTableProps {
   onDeleteCard: (cardId: string) => void;
   onFocusCell: (row: string, col: number) => void;
   onNewRowChange: (value: Record<number, string>) => void;
+  onNewTagIdsChange: (tagIds: string[]) => void;
+  onOpenCard: (cardId: string) => void;
   onUpdateCardSide: (card: CardRow, template: SideTemplate, content: string) => void;
 }
 
 export function CardTable({
+  allTags,
   cards,
+  deckId,
   newRow,
+  newTagIds,
   tableRef,
   templates,
   totalCount,
@@ -26,6 +36,8 @@ export function CardTable({
   onDeleteCard,
   onFocusCell,
   onNewRowChange,
+  onNewTagIdsChange,
+  onOpenCard,
   onUpdateCardSide
 }: CardTableProps) {
   return (
@@ -37,6 +49,7 @@ export function CardTable({
               {templates.map((template) => (
                 <th key={template.id}>{template.label}</th>
               ))}
+              <th className="desktop-only">Tags</th>
               <th className="desktop-only">Derniere revision</th>
               <th className="action-col" />
             </tr>
@@ -72,6 +85,14 @@ export function CardTable({
                   />
                 </td>
               ))}
+              <td className="desktop-only">
+                <NewCardTagSelector
+                  allTags={allTags}
+                  deckId={deckId}
+                  selectedTagIds={newTagIds}
+                  onSelectedTagIdsChange={onNewTagIdsChange}
+                />
+              </td>
               <td className="desktop-only" />
               <td>
                 <Button
@@ -119,6 +140,14 @@ export function CardTable({
                   );
                 })}
                 <td className="desktop-only muted-cell">
+                  <CardTagPicker
+                    allTags={allTags}
+                    cardId={card.id}
+                    cardTags={card.tags}
+                    deckId={deckId}
+                  />
+                </td>
+                <td className="desktop-only muted-cell">
                   {card.lastReviewEffective
                     ? new Date(card.lastReviewEffective).toLocaleString("fr-FR", {
                         day: "numeric",
@@ -130,14 +159,19 @@ export function CardTable({
                     : "-"}
                 </td>
                 <td>
-                  <Button
-                    className="danger"
-                    size="icon"
-                    onClick={() => onDeleteCard(card.id)}
-                    aria-label="Supprimer"
-                  >
-                    <Trash2 size={15} />
-                  </Button>
+                  <div className="row-actions">
+                    <Button size="icon" onClick={() => onOpenCard(card.id)} aria-label="Ouvrir">
+                      <Eye size={15} />
+                    </Button>
+                    <Button
+                      className="danger"
+                      size="icon"
+                      onClick={() => onDeleteCard(card.id)}
+                      aria-label="Supprimer"
+                    >
+                      <Trash2 size={15} />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

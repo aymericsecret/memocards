@@ -3,8 +3,7 @@ import {
   Plus,
   Settings,
   Star,
-  Trash2,
-  Undo2
+  Trash2
 } from "lucide-react";
 import { useState } from "react";
 import { ActionMenu, ActionMenuItem, Button, Modal, ModalHeader } from "../design-system";
@@ -51,6 +50,9 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [settingsReviewType, setSettingsReviewType] = useState<ReviewType | null>(null);
   const [deleteReviewType, setDeleteReviewType] = useState<ReviewType | null>(null);
+  const [selectionMap, setSelectionMap] = useState<
+    Record<string, Array<keyof ReviewType["groups"]>>
+  >({});
   const createReviewTypeMutation = useCreateReviewTypeMutation(deckId);
   const updateReviewTypeMutation = useUpdateReviewTypeMutation(deckId);
   const deleteReviewTypeMutation = useDeleteReviewTypeMutation(deckId);
@@ -60,6 +62,19 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
   const frontLabel = (position: number) =>
     templates.find((template) => template.position === position)?.label ??
     `Position ${position}`;
+
+  const selectedCount = (reviewType: ReviewType) =>
+    (selectionMap[reviewType.id] ?? []).reduce(
+      (sum, key) => sum + reviewType.groups[key],
+      0
+    );
+
+  const startReview = (reviewType: ReviewType) => {
+    const selected = selectionMap[reviewType.id] ?? [];
+    const query = new URLSearchParams();
+    if (selected.length > 0) query.set("groups", selected.join(","));
+    navigate(`/review-type/${reviewType.id}${query.toString() ? `?${query.toString()}` : ""}`);
+  };
 
   const deleteSelectedReviewType = async () => {
     if (!deleteReviewType) return;
@@ -87,6 +102,9 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
         <div className="review-type-list">
           {reviewTypes.map((reviewType) => {
             const tag = tags.find((candidate) => candidate.id === reviewType.tagId);
+            const selected = selectionMap[reviewType.id] ?? [];
+            const count =
+              selected.length > 0 ? selectedCount(reviewType) : reviewType.dueCount;
 
             return (
               <article
@@ -116,11 +134,11 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
                   <div className="review-type-actions">
                     <Button
                       size="sm"
-                      variant={reviewType.dueCount > 0 ? "primary" : "outline"}
-                      disabled={reviewType.dueCount === 0}
-                      onClick={() => navigate(`/review-type/${reviewType.id}`)}
+                      variant={count > 0 ? "primary" : "outline"}
+                      disabled={count === 0}
+                      onClick={() => startReview(reviewType)}
                     >
-                      <Play size={14} /> {reviewType.dueCount}
+                      <Play size={14} /> {count}
                     </Button>
                     <ActionMenu label="Actions du type de revision">
                       <ActionMenuItem onClick={() => setSettingsReviewType(reviewType)}>
@@ -134,11 +152,6 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
                         </ActionMenuItem>
                       )}
                       <ActionMenuItem
-                        onClick={() => void resetProgressMutation.mutateAsync(reviewType.id)}
-                      >
-                        <Undo2 size={15} /> Reinitialiser
-                      </ActionMenuItem>
-                      <ActionMenuItem
                         className="danger-menu-item"
                         onClick={() => setDeleteReviewType(reviewType)}
                       >
@@ -148,7 +161,16 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
                   </div>
                 </div>
 
-                <ReviewGroupsBar groups={reviewType.groups} />
+                <ReviewGroupsBar
+                  groups={reviewType.groups}
+                  selected={new Set(selected)}
+                  onSelectionChange={(next) =>
+                    setSelectionMap((previous) => ({
+                      ...previous,
+                      [reviewType.id]: Array.from(next)
+                    }))
+                  }
+                />
               </article>
             );
           })}
@@ -198,10 +220,25 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
   );
 }
 
-function ReviewGroupsBar({ groups }: { groups: ReviewType["groups"] }) {
+function ReviewGroupsBar({
+  groups,
+  selected,
+  onSelectionChange
+}: {
+  groups: ReviewType["groups"];
+  selected: Set<keyof ReviewType["groups"]>;
+  onSelectionChange: (selected: Set<keyof ReviewType["groups"]>) => void;
+}) {
   const total = Object.values(groups).reduce((sum, value) => sum + value, 0);
 
   if (total === 0) return null;
+
+  const toggleGroup = (key: keyof ReviewType["groups"]) => {
+    const next = new Set(selected);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onSelectionChange(next);
+  };
 
   return (
     <div className="review-groups">
@@ -209,15 +246,19 @@ function ReviewGroupsBar({ groups }: { groups: ReviewType["groups"] }) {
         {groupLabels.map(([key, label]) => {
           const count = groups[key];
           if (count === 0) return null;
+          const isSelected = selected.has(key);
 
           return (
-            <span
+            <button
               key={key}
+              onClick={() => toggleGroup(key)}
               title={`${label}: ${count}`}
               style={{
                 backgroundColor: groupColors[key],
+                opacity: selected.size === 0 || isSelected ? 1 : 0.25,
                 width: `${(count / total) * 100}%`
               }}
+              type="button"
             />
           );
         })}
@@ -228,7 +269,13 @@ function ReviewGroupsBar({ groups }: { groups: ReviewType["groups"] }) {
           if (count === 0) return null;
 
           return (
-            <button key={key} type="button">
+            <button
+              className={selected.has(key) ? "selected" : ""}
+              key={key}
+              onClick={() => toggleGroup(key)}
+              style={{ opacity: selected.size === 0 || selected.has(key) ? 1 : 0.4 }}
+              type="button"
+            >
               <span style={{ backgroundColor: groupColors[key] }} />
               {label} ({count})
             </button>

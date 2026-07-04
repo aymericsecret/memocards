@@ -97,3 +97,28 @@ export interface ReviewTypeDetail {
   tagId: string | null;
   isDefault: boolean;
 }
+
+export interface CardReviewState {
+  reviewTypeId: string;
+  reviewTypeName: string;
+  state: number;
+  stability: number;
+  difficulty: number;
+  due: string;
+  reps: number;
+  lapses: number;
+  lastReview: string | null;
+  learningStatus: "new" | "learning" | "known";
+}
+
+export interface CardDetail {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  sides: CardSide[];
+  tags: Tag[];
+  reviewCount: number;
+  lastReview: string | null;
+  recentRatings: Array<{ rating: number; reviewedAt: string }>;
+  reviewStates: CardReviewState[];
+}

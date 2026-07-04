@@ -1,24 +1,31 @@
 import { useMemo, useState } from "react";
 import { Button, Field, Modal, ModalHeader } from "../design-system";
-import type { SideTemplate } from "../shared/types";
+import type { SideTemplate, Tag } from "../shared/types";
 import { createCardSidesPayload } from "./card-queries";
+import { NewCardTagSelector } from "./new-card-tag-selector";
 
 interface NewCardModalProps {
   isOpen: boolean;
+  allTags: Tag[];
+  deckId: string;
   templates: SideTemplate[];
   onClose: () => void;
   onCreateCard: (
-    sides: Array<{ content: string; label: string; position: number }>
+    sides: Array<{ content: string; label: string; position: number }>,
+    tagIds: string[]
   ) => Promise<void>;
 }
 
 export function NewCardModal({
+  allTags,
+  deckId,
   isOpen,
   templates,
   onClose,
   onCreateCard
 }: NewCardModalProps) {
   const [values, setValues] = useState<Record<number, string>>({});
+  const [tagIds, setTagIds] = useState<string[]>([]);
   const filledSidesCount = useMemo(
     () => Object.values(values).filter((value) => value.trim()).length,
     [values]
@@ -28,8 +35,9 @@ export function NewCardModal({
 
   const submit = async () => {
     if (filledSidesCount < 2) return;
-    await onCreateCard(createCardSidesPayload(templates, values));
+    await onCreateCard(createCardSidesPayload(templates, values), tagIds);
     setValues({});
+    setTagIds([]);
     onClose();
   };
 
@@ -56,6 +64,15 @@ export function NewCardModal({
           </Field>
         ))}
       </div>
+
+      <Field label="Tags">
+        <NewCardTagSelector
+          allTags={allTags}
+          deckId={deckId}
+          selectedTagIds={tagIds}
+          onSelectedTagIdsChange={setTagIds}
+        />
+      </Field>
 
       <Button
         className="modal-submit"

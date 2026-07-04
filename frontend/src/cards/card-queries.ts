@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../shared/api";
 import { deckKeys } from "../deck/deck-queries";
-import type { CardRow, SideTemplate } from "../shared/types";
+import type { CardDetail, CardRow, SideTemplate, Tag } from "../shared/types";
 
 export interface CardsQueryFilters {
   search: string;
@@ -15,6 +15,7 @@ export interface CardsQueryFilters {
 }
 
 export const cardKeys = {
+  detail: (cardId: string | null) => ["cardDetail", cardId] as const,
   list: (deckId: string, filters: CardsQueryFilters) =>
     ["deckCards", deckId, filters] as const
 };
@@ -51,7 +52,10 @@ export function useCreateCardMutation(deckId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { sides: Array<{ content: string; label: string; position: number }> }) =>
+    mutationFn: (input: {
+      sides: Array<{ content: string; label: string; position: number }>;
+      tagIds?: string[];
+    }) =>
       api<{ id: string }>(`/decks/${deckId}/cards`, {
         method: "POST",
         body: JSON.stringify(input)
@@ -94,6 +98,65 @@ export function useDeleteCardMutation(deckId: string) {
       void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
       void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
       void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+    }
+  });
+}
+
+export function useCardDetailQuery(cardId: string | null) {
+  return useQuery({
+    enabled: Boolean(cardId),
+    queryKey: cardKeys.detail(cardId),
+    queryFn: async () => {
+      const data = await api<{ card: CardDetail }>(`/cards/${cardId}/detail`);
+      return data.card;
+    }
+  });
+}
+
+export function useCreateTagMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (name: string) =>
+      api<Tag>(`/decks/${deckId}/tags`, {
+        method: "POST",
+        body: JSON.stringify({ name })
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
+      void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+    }
+  });
+}
+
+export function useAddCardTagMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { cardId: string; tagId: string }) =>
+      api<{ cardId: string; tagId: string }>(`/cards/${input.cardId}/tags/${input.tagId}`, {
+        method: "PUT"
+      }),
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
+      void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
+      void queryClient.invalidateQueries({ queryKey: cardKeys.detail(input.cardId) });
+    }
+  });
+}
+
+export function useRemoveCardTagMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { cardId: string; tagId: string }) =>
+      api<{ cardId: string; tagId: string }>(`/cards/${input.cardId}/tags/${input.tagId}`, {
+        method: "DELETE"
+      }),
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
+      void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
+      void queryClient.invalidateQueries({ queryKey: cardKeys.detail(input.cardId) });
     }
   });
 }

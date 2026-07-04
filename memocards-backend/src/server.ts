@@ -35,6 +35,19 @@ export async function buildServer() {
       return;
     }
 
+    const maybeHttpError = error as Error & { statusCode?: number };
+    if (
+      typeof maybeHttpError.statusCode === "number" &&
+      maybeHttpError.statusCode >= 400 &&
+      maybeHttpError.statusCode < 500
+    ) {
+      void reply.status(maybeHttpError.statusCode).send({
+        error: maybeHttpError.statusCode === 404 ? "Not Found" : "Bad Request",
+        message: maybeHttpError.message
+      });
+      return;
+    }
+
     request.log.error(error);
     void reply.status(500).send({
       error: "Internal Server Error",

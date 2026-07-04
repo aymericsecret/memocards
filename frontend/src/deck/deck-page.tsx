@@ -8,9 +8,10 @@ import {
   useUpdateCardMutation
 } from "../cards/card-queries";
 import { CardFilters } from "../cards/card-filters";
+import { CardDetailModal } from "../cards/card-detail-modal";
 import { CardTable } from "../cards/card-table";
 import { NewCardModal } from "../cards/new-card-modal";
-import { Button } from "../design-system";
+import { ActionMenu, ActionMenuItem, Button } from "../design-system";
 import { ReviewTypesTab } from "../review/review-types-tab";
 import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
@@ -21,7 +22,9 @@ import { useDeckQuery } from "./deck-queries";
 export function DeckPage({ deckId }: { deckId: string }) {
   const [activeTab, setActiveTab] = useState<"cards" | "review-types">("cards");
   const [isNewCardModalOpen, setIsNewCardModalOpen] = useState(false);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
+  const [newTagIds, setNewTagIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortField, setSortField] = useState<"created_at" | "last_review">("created_at");
@@ -114,17 +117,20 @@ export function DeckPage({ deckId }: { deckId: string }) {
     if (filled < 2) return;
 
     await createCardMutation.mutateAsync({
-      sides: createCardSidesPayload(templates, newRow)
+      sides: createCardSidesPayload(templates, newRow),
+      tagIds: newTagIds
     });
 
     setNewRow({});
+    setNewTagIds([]);
     setTimeout(() => focusCell("__new__", 0), 50);
   };
 
   const addCardFromModal = async (
-    sides: Array<{ content: string; label: string; position: number }>
+    sides: Array<{ content: string; label: string; position: number }>,
+    tagIds: string[]
   ) => {
-    await createCardMutation.mutateAsync({ sides });
+    await createCardMutation.mutateAsync({ sides, tagIds });
   };
 
   const updateCardSide = async (
@@ -191,15 +197,38 @@ export function DeckPage({ deckId }: { deckId: string }) {
             </p>
           </div>
           {defaultReviewType && (
-            <Button
-              className="deck-start-review"
-              disabled={defaultReviewType.dueCount === 0}
-              onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
+            <div
+              className={
+                reviewTypes.length > 1
+                  ? "deck-start-review-group has-review-type-menu"
+                  : "deck-start-review-group"
+              }
             >
-              <Play size={16} fill="currentColor" />
-              Reviser
-              <span>{defaultReviewType.dueCount}</span>
-            </Button>
+              <Button
+                className="deck-start-review"
+                disabled={defaultReviewType.dueCount === 0}
+                onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
+              >
+                <Play size={16} fill="currentColor" />
+                Reviser
+                <span>{defaultReviewType.dueCount}</span>
+              </Button>
+              {reviewTypes.length > 1 && (
+                <ActionMenu className="deck-review-type-menu" label="Choisir le type de revision">
+                  {reviewTypes.map((reviewType) => (
+                    <ActionMenuItem
+                      disabled={reviewType.dueCount === 0}
+                      key={reviewType.id}
+                      onClick={() => navigate(`/review-type/${reviewType.id}`)}
+                    >
+                      <Play size={14} fill="currentColor" />
+                      <span className="review-type-menu-label">{reviewType.name}</span>
+                      <span className="review-type-menu-count">{reviewType.dueCount}</span>
+                    </ActionMenuItem>
+                  ))}
+                </ActionMenu>
+              )}
+            </div>
           )}
         </div>
 
@@ -240,8 +269,11 @@ export function DeckPage({ deckId }: { deckId: string }) {
             />
 
             <CardTable
+              allTags={deck.tags}
               cards={cards}
+              deckId={deckId}
               newRow={newRow}
+              newTagIds={newTagIds}
               tableRef={tableRef}
               templates={templates}
               totalCount={totalCount}
@@ -249,6 +281,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
               onDeleteCard={(cardId) => void deleteCard(cardId)}
               onFocusCell={focusCell}
               onNewRowChange={setNewRow}
+              onNewTagIdsChange={setNewTagIds}
+              onOpenCard={setSelectedCardId}
               onUpdateCardSide={(card, template, content) =>
                 void updateCardSide(card, template, content)
               }
@@ -265,11 +299,14 @@ export function DeckPage({ deckId }: { deckId: string }) {
       </main>
 
       <NewCardModal
+        allTags={deck.tags}
+        deckId={deckId}
         isOpen={isNewCardModalOpen}
         templates={templates}
         onClose={() => setIsNewCardModalOpen(false)}
         onCreateCard={addCardFromModal}
       />
+      <CardDetailModal cardId={selectedCardId} onClose={() => setSelectedCardId(null)} />
     </div>
   );
 }

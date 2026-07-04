@@ -8,7 +8,7 @@ import {
   useState
 } from "react";
 
-const actionMenuOpenEvent = "memocards:action-menu-open";
+const actionMenuOpenEvent = "memocards:dropdown-open";
 
 interface ActionMenuProps {
   children: ReactNode;
