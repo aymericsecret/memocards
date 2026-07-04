@@ -19,6 +19,7 @@ interface DeckRow {
   total_cards: string;
   due_cards: string;
   last_review: string | null;
+  review_types: unknown;
 }
 
 interface DeckDetailRow {
@@ -58,6 +59,61 @@ export class DecksRepository {
 
     const result = await this.database.query<DeckRow>(
       `
+      with review_type_cards_scoped as (
+        select
+          rt.id as review_type_id,
+          c.id as card_id,
+          rtc.id as rtc_id,
+          rtc.due,
+          case
+            when rtc.id is null then 'new'
+            when rtc.due <= now() then 'now'
+            when rtc.due <= now() + interval '1 hour' then 'in1h'
+            when rtc.due <= now() + interval '24 hours' then 'in24h'
+            when rtc.due <= now() + interval '48 hours' then 'tomorrow'
+            when rtc.due <= now() + interval '7 days' then 'inWeek'
+            else 'later'
+          end as review_group
+        from review_types rt
+        join cards c
+          on c.deck_id = rt.deck_id
+         and (
+           rt.tag_id is null
+           or exists (
+             select 1
+             from card_tags ct
+             where ct.card_id = c.id
+               and ct.tag_id = rt.tag_id
+           )
+         )
+        left join review_type_cards rtc
+          on rtc.review_type_id = rt.id
+         and rtc.card_id = c.id
+      ),
+      review_types_with_counts as (
+        select
+          rt.id,
+          rt.deck_id,
+          rt.name,
+          rt.front_side_position,
+          rt.request_retention,
+          rt.tag_id,
+          rt.created_at,
+          count(scoped.card_id) as total_cards,
+          count(scoped.card_id) filter (
+            where scoped.rtc_id is null or scoped.due <= now()
+          ) as due_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'new') as new_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'now') as now_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'in1h') as in1h_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'in24h') as in24h_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'tomorrow') as tomorrow_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'inWeek') as in_week_count,
+          count(scoped.card_id) filter (where scoped.review_group = 'later') as later_count
+        from review_types rt
+        left join review_type_cards_scoped scoped on scoped.review_type_id = rt.id
+        group by rt.id
+      )
       select
         d.id,
         d.name,
@@ -71,7 +127,37 @@ export class DecksRepository {
           where d.default_review_type_id is not null
             and (rtc.id is null or rtc.due <= now())
         ) as due_cards,
-        max(rtc.last_review) as last_review
+        max(rtc.last_review) as last_review,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'id', rtc_counts.id,
+                'name', rtc_counts.name,
+                'deckId', rtc_counts.deck_id,
+                'frontSidePosition', rtc_counts.front_side_position,
+                'requestRetention', rtc_counts.request_retention,
+                'tagId', rtc_counts.tag_id,
+                'isDefault', d.default_review_type_id = rtc_counts.id,
+                'dueCount', rtc_counts.due_count,
+                'totalCards', rtc_counts.total_cards,
+                'groups', jsonb_build_object(
+                  'new', rtc_counts.new_count,
+                  'now', rtc_counts.now_count,
+                  'in1h', rtc_counts.in1h_count,
+                  'in24h', rtc_counts.in24h_count,
+                  'tomorrow', rtc_counts.tomorrow_count,
+                  'inWeek', rtc_counts.in_week_count,
+                  'later', rtc_counts.later_count
+                )
+              )
+              order by rtc_counts.created_at
+            )
+            from review_types_with_counts rtc_counts
+            where rtc_counts.deck_id = d.id
+          ),
+          '[]'::jsonb
+        ) as review_types
       from decks d
       left join cards c on c.deck_id = d.id
       left join review_type_cards rtc
@@ -96,7 +182,8 @@ export class DecksRepository {
         totalCards: Number(row.total_cards),
         dueCards: Number(row.due_cards),
         lastReview: row.last_review
-      }
+      },
+      reviewTypes: row.review_types
     }));
   }
 

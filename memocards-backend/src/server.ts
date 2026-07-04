@@ -11,9 +11,18 @@ export async function buildServer() {
   const app = Fastify({
     logger: env.NODE_ENV !== "test"
   });
+  const allowedOrigins = new Set(env.CORS_ALLOWED_ORIGINS);
 
   await app.register(cors, {
-    origin: env.CORS_ORIGIN
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, false);
+    },
+    credentials: true
   });
 
   app.setErrorHandler((error, request, reply) => {
