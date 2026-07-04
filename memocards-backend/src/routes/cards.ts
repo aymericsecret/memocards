@@ -23,6 +23,10 @@ const cardTagParamsSchema = z.object({
   tagId: z.string().uuid()
 });
 
+const tagParamsSchema = z.object({
+  tagId: z.string().uuid()
+});
+
 const createTagParamsSchema = z.object({
   deckId: z.string().uuid()
 });
@@ -81,6 +85,37 @@ export async function registerCardRoutes(app: FastifyInstance) {
 
     const tag = await repository.createTag(params.deckId, body.name);
     return reply.status(201).send(tag);
+  });
+
+  app.patch("/tags/:tagId", async (request, reply) => {
+    const params = tagParamsSchema.parse(request.params);
+    const body = createTagBodySchema.parse(request.body);
+    const repository = Container.get(CardsRepository);
+    const tag = await repository.updateTag(params.tagId, body.name);
+
+    if (!tag) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "Tag not found"
+      });
+    }
+
+    return tag;
+  });
+
+  app.delete("/tags/:tagId", async (request, reply) => {
+    const params = tagParamsSchema.parse(request.params);
+    const repository = Container.get(CardsRepository);
+    const result = await repository.deleteTag(params.tagId);
+
+    if (!result.id) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "Tag not found"
+      });
+    }
+
+    return result;
   });
 
   app.put("/cards/:cardId/tags/:tagId", async (request) => {

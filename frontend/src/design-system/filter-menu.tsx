@@ -51,7 +51,15 @@ export function FilterMenu({ children, label, wide = false }: FilterMenuProps) {
   };
 
   return (
-    <div className={wide ? "filter-menu wide" : "filter-menu"} ref={ref}>
+    <div
+      className={wide ? "filter-menu wide" : "filter-menu"}
+      ref={ref}
+      onClickCapture={(event) => {
+        if ((event.target as HTMLElement).closest("[data-close-menu]")) {
+          setIsOpen(false);
+        }
+      }}
+    >
       <button
         className="filter-menu-trigger"
         type="button"

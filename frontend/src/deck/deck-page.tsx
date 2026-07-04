@@ -18,7 +18,9 @@ import { navigate } from "../shared/navigation";
 import type { CardRow, SideTemplate } from "../shared/types";
 import { DeckActionsMenu } from "./deck-actions-menu";
 import { useDeckQuery, useDeleteDeckMutation } from "./deck-queries";
+import { DeckSettingsModal } from "./deck-settings-modal";
 import { DeckStatsTab } from "./deck-stats-tab";
+import { DeckTagsModal } from "./deck-tags-modal";
 
 export function DeckPage({ deckId }: { deckId: string }) {
   const [activeTab, setActiveTab] = useState<"cards" | "review-types" | "stats">("cards");
@@ -26,6 +28,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [cardToDelete, setCardToDelete] = useState<CardRow | null>(null);
   const [isDeleteDeckOpen, setIsDeleteDeckOpen] = useState(false);
+  const [isDeckSettingsOpen, setIsDeckSettingsOpen] = useState(false);
+  const [isDeckTagsOpen, setIsDeckTagsOpen] = useState(false);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -171,77 +175,78 @@ export function DeckPage({ deckId }: { deckId: string }) {
     return <div className="loading-page">Paquet introuvable</div>;
   }
 
+  const reviewStartControl = defaultReviewType ? (
+    <div
+      className={
+        reviewTypes.length > 1
+          ? "deck-start-review-group has-review-type-menu"
+          : "deck-start-review-group"
+      }
+    >
+      <Button
+        className="deck-start-review"
+        disabled={defaultReviewType.dueCount === 0}
+        onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
+      >
+        <Play size={16} fill="currentColor" />
+        <span className="review-button-label">Reviser</span>
+        <span>{defaultReviewType.dueCount}</span>
+      </Button>
+      {reviewTypes.length > 1 && (
+        <ActionMenu className="deck-review-type-menu" label="Choisir le type de revision">
+          {reviewTypes.map((reviewType) => (
+            <ActionMenuItem
+              disabled={reviewType.dueCount === 0}
+              key={reviewType.id}
+              onClick={() => navigate(`/review-type/${reviewType.id}`)}
+            >
+              <Play size={14} fill="currentColor" />
+              <span className="review-type-menu-label">{reviewType.name}</span>
+              <span className="review-type-menu-count">{reviewType.dueCount}</span>
+            </ActionMenuItem>
+          ))}
+        </ActionMenu>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="container deck-topbar">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Retour">
-            <ArrowLeft size={18} />
-          </Button>
-          <span className="card-count">
-            {totalCount} carte{totalCount !== 1 ? "s" : ""}
-          </span>
-          <Button
-            className="mobile-only"
-            size="icon"
-            onClick={() => setIsNewCardModalOpen(true)}
-            aria-label="Ajouter une carte"
-          >
-            <Plus size={18} />
-          </Button>
-          <DeckActionsMenu
-            cards={cards}
-            deckName={deck.name}
-            templates={templates}
-            onDeleteDeck={() => setIsDeleteDeckOpen(true)}
-          />
+          <div className="deck-topbar-left">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")} aria-label="Retour">
+              <ArrowLeft size={18} />
+            </Button>
+            <div className="deck-topbar-title">
+              <h1>{deck.name}</h1>
+              <span>
+                {totalCount} carte{totalCount !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+          <div className="deck-topbar-actions">
+            {reviewStartControl}
+            <DeckActionsMenu
+              cards={cards}
+              deckName={deck.name}
+              templates={templates}
+              onDeleteDeck={() => setIsDeleteDeckOpen(true)}
+              onOpenSettings={() => setIsDeckSettingsOpen(true)}
+              onOpenTags={() => setIsDeckTagsOpen(true)}
+            />
+          </div>
         </div>
       </header>
 
-      <main className="container deck-main">
-        <div className="deck-heading-row">
-          <div className="deck-heading">
-            <h1>{deck.name}</h1>
-            {deck.description && <p>{deck.description}</p>}
-            <p className="mobile-count">
-              {totalCount} carte{totalCount !== 1 ? "s" : ""}
-            </p>
-          </div>
-          {defaultReviewType && (
-            <div
-              className={
-                reviewTypes.length > 1
-                  ? "deck-start-review-group has-review-type-menu"
-                  : "deck-start-review-group"
-              }
-            >
-              <Button
-                className="deck-start-review"
-                disabled={defaultReviewType.dueCount === 0}
-                onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
-              >
-                <Play size={16} fill="currentColor" />
-                Reviser
-                <span>{defaultReviewType.dueCount}</span>
-              </Button>
-              {reviewTypes.length > 1 && (
-                <ActionMenu className="deck-review-type-menu" label="Choisir le type de revision">
-                  {reviewTypes.map((reviewType) => (
-                    <ActionMenuItem
-                      disabled={reviewType.dueCount === 0}
-                      key={reviewType.id}
-                      onClick={() => navigate(`/review-type/${reviewType.id}`)}
-                    >
-                      <Play size={14} fill="currentColor" />
-                      <span className="review-type-menu-label">{reviewType.name}</span>
-                      <span className="review-type-menu-count">{reviewType.dueCount}</span>
-                    </ActionMenuItem>
-                  ))}
-                </ActionMenu>
-              )}
-            </div>
-          )}
+      <main className={activeTab === "cards" ? "container deck-main cards-mode" : "container deck-main"}>
+        <div className="mobile-deck-heading">
+          <h1>{deck.name}</h1>
+          <span>
+            {totalCount} carte{totalCount !== 1 ? "s" : ""}
+          </span>
         </div>
+        {deck.description && <p className="deck-description">{deck.description}</p>}
 
         <div className="tabs-list">
           <button
@@ -265,7 +270,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
         </div>
 
         {activeTab === "cards" ? (
-          <>
+          <div className="cards-tab-content">
             <CardFilters
               search={search}
               selectedStatuses={selectedStatuses}
@@ -284,6 +289,13 @@ export function DeckPage({ deckId }: { deckId: string }) {
                 setSortDir(dir);
               }}
             />
+
+            <Button
+              className="mobile-create-card-button"
+              onClick={() => setIsNewCardModalOpen(true)}
+            >
+              <Plus size={16} /> Creer une carte
+            </Button>
 
             <CardTable
               allTags={deck.tags}
@@ -304,7 +316,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
                 void updateCardSide(card, template, content)
               }
             />
-          </>
+          </div>
         ) : activeTab === "review-types" ? (
           <ReviewTypesTab
             deckId={deckId}
@@ -330,6 +342,17 @@ export function DeckPage({ deckId }: { deckId: string }) {
         cardId={selectedCardId}
         deckId={deckId}
         onClose={() => setSelectedCardId(null)}
+      />
+      <DeckTagsModal
+        deckId={deckId}
+        isOpen={isDeckTagsOpen}
+        tags={deck.tags}
+        onClose={() => setIsDeckTagsOpen(false)}
+      />
+      <DeckSettingsModal
+        deck={deck}
+        isOpen={isDeckSettingsOpen}
+        onClose={() => setIsDeckSettingsOpen(false)}
       />
       {cardToDelete && (
         <ConfirmDialog

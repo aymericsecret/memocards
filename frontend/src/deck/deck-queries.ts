@@ -9,6 +9,12 @@ export interface CreateDeckInput {
   sideLabels: string[];
 }
 
+export interface UpdateDeckInput {
+  description: string;
+  name: string;
+  requestRetention: number;
+}
+
 export const deckKeys = {
   all: ["decks"] as const,
   detail: (deckId: string | null) => ["deck", deckId] as const
@@ -63,6 +69,41 @@ export function useDeleteDeckMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: deckKeys.all });
       navigate("/");
+    }
+  });
+}
+
+export function useUpdateDeckMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateDeckInput) =>
+      api<DeckDetail>(`/decks/${deckId}`, {
+        method: "PATCH",
+        body: JSON.stringify(input)
+      }),
+    onSuccess: (deck) => {
+      void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+      queryClient.setQueryData(deckKeys.detail(deck.id), deck);
+    }
+  });
+}
+
+export function useUpdateDeckSideTemplatesMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sideLabels: string[]) =>
+      api<DeckDetail>(`/decks/${deckId}/side-templates`, {
+        method: "PATCH",
+        body: JSON.stringify({ sideLabels })
+      }),
+    onSuccess: (deck) => {
+      void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypes", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
+      queryClient.setQueryData(deckKeys.detail(deck.id), deck);
     }
   });
 }

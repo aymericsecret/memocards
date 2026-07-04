@@ -8,6 +8,20 @@ export interface CreateDeckInput {
   sideLabels: string[];
 }
 
+export interface UpdateDeckInput {
+  deckId: string;
+  userId: string;
+  name: string;
+  description?: string | null;
+  requestRetention: number;
+}
+
+export interface UpdateDeckSideTemplatesInput {
+  deckId: string;
+  userId: string;
+  sideLabels: string[];
+}
+
 interface DeckRow {
   id: string;
   name: string;
@@ -492,6 +506,117 @@ export class DecksRepository {
     });
 
     return this.getDeck(deckId, input.userId);
+  }
+
+  async updateDeck(input: UpdateDeckInput) {
+    const result = await this.database.query<{ id: string }>(
+      `
+      update decks
+      set name = $3::text,
+          description = $4::text,
+          request_retention = $5::double precision
+      where id = $1::uuid
+        and user_id = $2::uuid
+      returning id
+      `,
+      [
+        input.deckId,
+        input.userId,
+        input.name.trim(),
+        input.description?.trim() || null,
+        input.requestRetention
+      ]
+    );
+
+    if (!result.rows[0]) return null;
+    return this.getDeck(input.deckId, input.userId);
+  }
+
+  async updateDeckSideTemplates(input: UpdateDeckSideTemplatesInput) {
+    const sideLabels = input.sideLabels.map((label) => label.trim()).filter(Boolean);
+
+    const deckExists = await this.database.transaction(async (client) => {
+      const deckResult = await client.query<{ id: string }>(
+        `
+        select id
+        from decks
+        where id = $1::uuid
+          and user_id = $2::uuid
+        for update
+        `,
+        [input.deckId, input.userId]
+      );
+
+      if (!deckResult.rows[0]) return false;
+
+      await client.query(
+        `
+        delete from deck_side_templates
+        where deck_id = $1::uuid
+          and position >= $2::int
+        `,
+        [input.deckId, sideLabels.length]
+      );
+
+      await client.query(
+        `
+        delete from card_sides
+        where card_id in (
+          select id from cards where deck_id = $1::uuid
+        )
+          and position >= $2::int
+        `,
+        [input.deckId, sideLabels.length]
+      );
+
+      for (const [position, label] of sideLabels.entries()) {
+        await client.query(
+          `
+          insert into deck_side_templates (deck_id, label, position)
+          values ($1::uuid, $2::text, $3::int)
+          on conflict (deck_id, position) do update
+          set label = excluded.label
+          `,
+          [input.deckId, label, position]
+        );
+
+        await client.query(
+          `
+          update card_sides
+          set label = $3::text
+          where card_id in (
+            select id from cards where deck_id = $1::uuid
+          )
+            and position = $2::int
+          `,
+          [input.deckId, position, label]
+        );
+      }
+
+      await client.query(
+        `
+        update review_types
+        set front_side_position = 0
+        where deck_id = $1::uuid
+          and front_side_position >= $2::int
+        `,
+        [input.deckId, sideLabels.length]
+      );
+
+      await client.query(
+        `
+        update decks
+        set updated_at = now()
+        where id = $1::uuid
+        `,
+        [input.deckId]
+      );
+
+      return true;
+    });
+
+    if (!deckExists) return null;
+    return this.getDeck(input.deckId, input.userId);
   }
 
   async deleteDeck(deckId: string, userId: string) {

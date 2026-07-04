@@ -32,6 +32,16 @@ const createDeckBodySchema = z.object({
   sideLabels: z.array(z.string().trim().min(1)).min(2).default(["Recto", "Verso"])
 });
 
+const updateDeckBodySchema = z.object({
+  name: z.string().trim().min(1),
+  description: z.string().optional().nullable(),
+  requestRetention: z.number().min(0.7).max(0.97)
+});
+
+const updateDeckSideTemplatesBodySchema = z.object({
+  sideLabels: z.array(z.string().trim().min(1)).min(2)
+});
+
 function parseCsv(value: string | undefined) {
   if (!value) return null;
 
@@ -111,6 +121,48 @@ export async function registerDeckRoutes(app: FastifyInstance) {
     }
 
     return result;
+  });
+
+  app.patch("/decks/:deckId", async (request, reply) => {
+    const params = paramsSchema.parse(request.params);
+    const body = updateDeckBodySchema.parse(request.body);
+    const repository = Container.get(DecksRepository);
+    const deck = await repository.updateDeck({
+      deckId: params.deckId,
+      userId: env.DEFAULT_USER_ID,
+      name: body.name,
+      description: body.description,
+      requestRetention: body.requestRetention
+    });
+
+    if (!deck) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "Deck not found"
+      });
+    }
+
+    return deck;
+  });
+
+  app.patch("/decks/:deckId/side-templates", async (request, reply) => {
+    const params = paramsSchema.parse(request.params);
+    const body = updateDeckSideTemplatesBodySchema.parse(request.body);
+    const repository = Container.get(DecksRepository);
+    const deck = await repository.updateDeckSideTemplates({
+      deckId: params.deckId,
+      userId: env.DEFAULT_USER_ID,
+      sideLabels: body.sideLabels
+    });
+
+    if (!deck) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "Deck not found"
+      });
+    }
+
+    return deck;
   });
 
   app.get("/decks/:deckId/stats", async (request, reply) => {

@@ -130,6 +130,43 @@ export function useCreateTagMutation(deckId: string) {
   });
 }
 
+export function useUpdateTagMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { tagId: string; name: string }) =>
+      api<Tag>(`/tags/${input.tagId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: input.name })
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
+      void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypes", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
+    }
+  });
+}
+
+export function useDeleteTagMutation(deckId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tagId: string) =>
+      api<{ id: string }>(`/tags/${tagId}`, {
+        method: "DELETE"
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });
+      void queryClient.invalidateQueries({ queryKey: deckKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypes", deckId] });
+      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
+    }
+  });
+}
+
 export function useAddCardTagMutation(deckId: string) {
   const queryClient = useQueryClient();
 

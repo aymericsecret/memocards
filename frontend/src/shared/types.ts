@@ -3,6 +3,7 @@ export interface DeckSummary {
   name: string;
   description: string | null;
   defaultReviewTypeId: string | null;
+  requestRetention: number;
   updatedAt: string;
   stats: {
     totalCards: number;
@@ -44,6 +45,7 @@ export interface DeckDetail {
   name: string;
   description: string | null;
   defaultReviewTypeId: string | null;
+  requestRetention: number;
   totalCards: number;
   sideTemplates: SideTemplate[];
   tags: Tag[];

@@ -234,7 +234,9 @@ h3 {
   right: 0;
   top: 42px;
   z-index: 20;
-  min-width: 210px;
+  min-width: 240px;
+  max-width: min(340px, calc(100vw - 32px));
+  width: max-content;
   display: grid;
   gap: 4px;
   padding: 8px;
@@ -255,6 +257,7 @@ h3 {
   color: hsl(var(--foreground));
   background: transparent;
   text-align: left;
+  white-space: nowrap;
 }
 
 .action-menu-panel button:hover:not(:disabled) {
@@ -513,17 +516,67 @@ h3 {
 }
 
 .deck-topbar {
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.card-count {
+.deck-topbar-left,
+.deck-topbar-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deck-topbar-left {
+  flex: 1 1 auto;
+}
+
+.deck-topbar-actions {
+  flex: 0 0 auto;
+}
+
+.deck-topbar-title {
+  min-width: 0;
+}
+
+.deck-topbar-title h1 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 1.15rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-topbar-title span,
+.card-count,
+.deck-description {
   color: hsl(var(--muted-foreground));
   font-size: 0.9rem;
 }
 
+.mobile-deck-heading,
+.mobile-create-card-button {
+  display: none;
+}
+
 .deck-main {
   padding: 24px 0 40px;
+}
+
+.deck-main.cards-mode {
+  height: calc(100vh - 69px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 16px;
+}
+
+.deck-description {
+  margin: 0 0 14px;
 }
 
 .deck-heading-row {
@@ -582,6 +635,16 @@ h3 {
   font-size: 0.78rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.deck-start-review .review-button-label {
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .deck-review-type-menu .action-menu-trigger {
@@ -656,6 +719,7 @@ h3 {
 }
 
 .table-toolbar {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -684,27 +748,23 @@ h3 {
   outline: none;
 }
 
-.table-toolbar select {
-  height: 34px;
-  border: 1px solid hsl(var(--input));
-  border-radius: calc(var(--radius) - 2px);
-  padding: 0 10px;
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
-}
-
 .filter-menu {
   position: relative;
 }
 
 .filter-menu-trigger {
   height: 34px;
-  border: 1px solid hsl(var(--input));
+  border: 1px solid hsl(var(--border));
   padding: 0 12px;
   color: hsl(var(--foreground));
-  background: hsl(var(--background));
+  background: hsl(var(--card));
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+.filter-menu-trigger:hover,
+.filter-menu-trigger[aria-expanded="true"] {
+  background: hsl(var(--muted) / 0.45);
 }
 
 .filter-panel {
@@ -712,14 +772,14 @@ h3 {
   right: 0;
   top: 42px;
   z-index: 5;
-  width: min(260px, calc(100vw - 32px));
+  width: min(280px, calc(100vw - 32px));
   display: grid;
-  gap: 16px;
-  padding: 16px;
+  gap: 4px;
+  padding: 8px;
   border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) - 2px);
   background: hsl(var(--popover));
-  box-shadow: 0 18px 48px -20px hsl(var(--foreground) / 0.28);
+  box-shadow: 0 18px 48px -24px hsl(var(--foreground) / 0.24);
 }
 
 .filter-menu.wide .filter-panel {
@@ -731,7 +791,7 @@ h3 {
 }
 
 .filter-title {
-  margin: 0 0 8px;
+  margin: 4px 8px 6px;
   color: hsl(var(--muted-foreground));
   font-size: 0.72rem;
   font-weight: 750;
@@ -740,18 +800,35 @@ h3 {
 }
 
 .filter-empty {
-  margin: 0;
+  margin: 6px 8px;
   color: hsl(var(--muted-foreground));
   font-size: 0.85rem;
 }
 
-.check-row {
+.check-row,
+.option-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  min-height: 28px;
+  min-height: 38px;
+  border-radius: calc(var(--radius) - 4px);
+  padding: 0 10px;
   color: hsl(var(--foreground));
   font-size: 0.9rem;
+}
+
+.check-row:hover,
+.option-row:hover,
+.option-row.selected {
+  background: hsl(var(--muted) / 0.58);
+}
+
+.option-row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
 }
 
 .side-filter-row {
@@ -783,10 +860,18 @@ h3 {
 }
 
 .table-frame {
-  overflow: visible;
+  min-height: 0;
+  overflow: auto;
   border: 1px solid hsl(var(--border) / 0.5);
   border-radius: var(--radius);
   background: hsl(var(--card));
+}
+
+.cards-tab-content {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 table {
@@ -795,6 +880,9 @@ table {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   height: 42px;
   padding: 0 10px;
   color: hsl(var(--muted-foreground));
@@ -1137,6 +1225,90 @@ td input:focus {
 
 .card-detail-tabs .modal-tab svg {
   color: currentColor;
+}
+
+.deck-settings-tabs {
+  width: 100%;
+  height: 42px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 5px;
+}
+
+.deck-settings-tabs .modal-tab {
+  height: 32px;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.deck-settings-tabs .danger-tab {
+  color: hsl(var(--destructive));
+}
+
+.deck-settings-modal-panel {
+  max-height: min(90dvh, 760px);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.deck-settings-scroll {
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.deck-tags-modal,
+.deck-settings-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.inline-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  gap: 8px;
+}
+
+.inline-control input,
+.settings-row input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  border: 1px solid hsl(var(--input));
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0 11px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  outline: none;
+}
+
+.inline-control input:focus,
+.settings-row input:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.14);
+}
+
+.settings-list {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: var(--radius);
+  padding: 10px;
+  background: hsl(var(--card));
+}
+
+.danger-zone {
+  border-color: hsl(var(--destructive) / 0.24);
+  background: hsl(var(--destructive) / 0.06);
 }
 
 .card-detail-preview {
@@ -1525,6 +1697,23 @@ td input:focus {
 }
 
 @media (max-width: 720px) {
+  .deck-topbar {
+    flex-wrap: wrap;
+  }
+
+  .deck-topbar-left {
+    flex: 1 1 min(100%, 240px);
+  }
+
+  .deck-topbar-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+
+  .deck-topbar-actions .deck-start-review-group {
+    margin-right: auto;
+  }
+
   .history-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1704,6 +1893,14 @@ td input:focus {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   text-align: left;
+}
+
+.retention strong {
+  font-size: 1rem;
+}
+
+.retention span {
+  line-height: 1.35;
 }
 
 .retention.active {
@@ -1956,6 +2153,93 @@ td input:focus {
     width: min(100% - 24px, 1024px);
   }
 
+  .topbar {
+    z-index: 30;
+  }
+
+  .deck-topbar {
+    min-height: 58px;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .deck-topbar-left {
+    flex: 0 0 auto;
+  }
+
+  .deck-topbar-title {
+    display: none;
+  }
+
+  .deck-topbar-actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .deck-topbar-actions .deck-start-review-group {
+    margin-right: 0;
+  }
+
+  .deck-start-review {
+    min-width: 0;
+    height: 36px;
+    padding: 0 9px;
+  }
+
+  .deck-start-review .review-button-label {
+    display: none;
+  }
+
+  .deck-start-review span:not(.review-button-label) {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+  }
+
+  .deck-review-type-menu .action-menu-trigger {
+    width: 36px;
+    height: 36px;
+  }
+
+  .deck-main {
+    padding-top: 14px;
+  }
+
+  .deck-main.cards-mode {
+    height: calc(100vh - 59px);
+  }
+
+  .mobile-deck-heading {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-deck-heading h1 {
+    margin: 0;
+    overflow: hidden;
+    font-size: 1.35rem;
+    line-height: 1.12;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-deck-heading span {
+    color: hsl(var(--muted-foreground));
+    font-size: 0.82rem;
+  }
+
+  .mobile-create-card-button {
+    width: 100%;
+    min-height: 38px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    margin-bottom: 12px;
+  }
+
   .section-heading {
     align-items: center;
   }
@@ -1969,7 +2253,8 @@ td input:focus {
   }
 
   .desktop-only,
-  .card-count {
+  .card-count,
+  .mobile-count {
     display: none;
   }
 
@@ -1977,16 +2262,100 @@ td input:focus {
     display: inline-flex;
   }
 
-  .mobile-count {
-    display: block;
-  }
-
   .tabs-list {
     width: 100%;
+    min-width: 0;
+    overflow-x: auto;
   }
 
   .tab {
-    flex: 1;
+    flex: 1 0 0;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 0.76rem;
+  }
+
+  .tab svg {
+    flex: 0 0 auto;
+  }
+
+  .table-toolbar {
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .filter-menu {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .filter-menu-trigger {
+    width: 100%;
+  }
+
+  .filter-panel {
+    left: 0;
+    right: auto;
+  }
+
+  .filter-menu:nth-last-child(-n + 2) .filter-panel {
+    left: auto;
+    right: 0;
+  }
+
+  .deck-settings-tabs {
+    height: auto;
+    overflow-x: auto;
+    grid-template-columns: repeat(3, minmax(112px, 1fr));
+  }
+
+  .deck-settings-tabs .modal-tab {
+    white-space: nowrap;
+  }
+
+  .stats-review-select,
+  .stats-tabs-list {
+    width: 100%;
+  }
+
+  .stats-tabs-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats-tabs-list .modal-tab {
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .hero-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-stat,
+  .stats-panel {
+    padding: 12px;
+  }
+
+  .hero-stat strong {
+    font-size: 1.25rem;
+  }
+
+  .history-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-day-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .review-type-list {
@@ -2013,7 +2382,7 @@ td input:focus {
 
   .table-frame {
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto;
   }
 
   table {

@@ -187,6 +187,33 @@ export class CardsRepository {
     return result.rows[0];
   }
 
+  async updateTag(tagId: string, name: string) {
+    const result = await this.database.query<{ id: string; name: string }>(
+      `
+      update tags
+      set name = lower($2::text)
+      where id = $1::uuid
+      returning id, name
+      `,
+      [tagId, name.trim()]
+    );
+
+    return result.rows[0] ?? null;
+  }
+
+  async deleteTag(tagId: string) {
+    const result = await this.database.query<{ id: string }>(
+      `
+      delete from tags
+      where id = $1::uuid
+      returning id
+      `,
+      [tagId]
+    );
+
+    return { id: result.rows[0]?.id ?? null };
+  }
+
   async addTagToCard(cardId: string, tagId: string) {
     const ownershipResult = await this.database.query<{
       card_deck_id: string;
