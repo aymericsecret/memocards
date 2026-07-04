@@ -1,41 +1,16 @@
 import { ArrowRight, BookOpen, MoreHorizontal, Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "../design-system";
-import { api } from "../shared/api";
 import { formatLastReview } from "../shared/format";
 import { navigate } from "../shared/navigation";
-import type { DeckDetail, DeckSummary } from "../shared/types";
+import { useCreateDeckMutation, useDecksQuery } from "./deck-queries";
 import { NewDeckModal } from "./new-deck-modal";
 
 export function DecksPage() {
-  const [decks, setDecks] = useState<DeckSummary[]>([]);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const data = await api<{ decks: DeckSummary[] }>("/decks");
-    setDecks(data.decks);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const createDeck = async (input: {
-    name: string;
-    description: string;
-    sideLabels: string[];
-  }) => {
-    const deck = await api<DeckDetail>("/decks", {
-      method: "POST",
-      body: JSON.stringify(input)
-    });
-
-    setCreating(false);
-    navigate(`/deck/${deck.id}`);
-  };
+  const decksQuery = useDecksQuery();
+  const createDeckMutation = useCreateDeckMutation();
+  const decks = decksQuery.data ?? [];
 
   return (
     <div className="app-shell">
@@ -68,7 +43,7 @@ export function DecksPage() {
           </Button>
         </div>
 
-        {loading ? (
+        {decksQuery.isLoading ? (
           <p className="muted">Chargement...</p>
         ) : decks.length === 0 ? (
           <section className="empty-card">
@@ -109,7 +84,11 @@ export function DecksPage() {
       {creating && (
         <NewDeckModal
           onClose={() => setCreating(false)}
-          onCreate={(input) => void createDeck(input)}
+          onCreate={(input) => {
+            createDeckMutation.mutate(input, {
+              onSuccess: () => setCreating(false)
+            });
+          }}
         />
       )}
     </div>
