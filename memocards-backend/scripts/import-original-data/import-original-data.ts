@@ -174,8 +174,8 @@ async function insertUsers(client: PoolClient, tables: CsvRow[][]) {
       insert into users (id, email, display_name)
       values ($1::uuid, $2::citext, $3::text)
       on conflict (id) do update
-      set email = excluded.email,
-          display_name = excluded.display_name
+      set email = coalesce(users.email, excluded.email),
+          display_name = coalesce(users.display_name, excluded.display_name)
       `,
       [userId, `${userId}@imported.memocards.local`, "Imported user"]
     );

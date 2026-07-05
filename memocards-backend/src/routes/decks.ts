@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { Container } from "typedi";
 import { z } from "zod";
-import { env } from "../env.js";
 import {
   DeckCardsRepository,
   reviewGroupKeys
@@ -75,16 +74,16 @@ function parseLearningStatuses(value: string | undefined) {
 }
 
 export async function registerDeckRoutes(app: FastifyInstance) {
-  app.get("/decks", async () => {
+  app.get("/decks", async (request) => {
     const repository = Container.get(DecksRepository);
-    return { decks: await repository.listDecks(env.DEFAULT_USER_ID) };
+    return { decks: await repository.listDecks(request.userId) };
   });
 
   app.post("/decks", async (request, reply) => {
     const body = createDeckBodySchema.parse(request.body);
     const repository = Container.get(DecksRepository);
     const deck = await repository.createDeck({
-      userId: env.DEFAULT_USER_ID,
+      userId: request.userId,
       name: body.name,
       description: body.description,
       sideLabels: body.sideLabels
@@ -96,7 +95,7 @@ export async function registerDeckRoutes(app: FastifyInstance) {
   app.get("/decks/:deckId", async (request, reply) => {
     const params = paramsSchema.parse(request.params);
     const repository = Container.get(DecksRepository);
-    const deck = await repository.getDeck(params.deckId, env.DEFAULT_USER_ID);
+    const deck = await repository.getDeck(params.deckId, request.userId);
 
     if (!deck) {
       return reply.status(404).send({
@@ -111,7 +110,7 @@ export async function registerDeckRoutes(app: FastifyInstance) {
   app.delete("/decks/:deckId", async (request, reply) => {
     const params = paramsSchema.parse(request.params);
     const repository = Container.get(DecksRepository);
-    const result = await repository.deleteDeck(params.deckId, env.DEFAULT_USER_ID);
+    const result = await repository.deleteDeck(params.deckId, request.userId);
 
     if (!result.id) {
       return reply.status(404).send({
@@ -129,7 +128,7 @@ export async function registerDeckRoutes(app: FastifyInstance) {
     const repository = Container.get(DecksRepository);
     const deck = await repository.updateDeck({
       deckId: params.deckId,
-      userId: env.DEFAULT_USER_ID,
+      userId: request.userId,
       name: body.name,
       description: body.description,
       requestRetention: body.requestRetention
@@ -151,7 +150,7 @@ export async function registerDeckRoutes(app: FastifyInstance) {
     const repository = Container.get(DecksRepository);
     const deck = await repository.updateDeckSideTemplates({
       deckId: params.deckId,
-      userId: env.DEFAULT_USER_ID,
+      userId: request.userId,
       sideLabels: body.sideLabels
     });
 
@@ -168,7 +167,7 @@ export async function registerDeckRoutes(app: FastifyInstance) {
   app.get("/decks/:deckId/stats", async (request, reply) => {
     const params = paramsSchema.parse(request.params);
     const repository = Container.get(DecksRepository);
-    const stats = await repository.getDeckStats(params.deckId, env.DEFAULT_USER_ID);
+    const stats = await repository.getDeckStats(params.deckId, request.userId);
 
     if (!stats) {
       return reply.status(404).send({

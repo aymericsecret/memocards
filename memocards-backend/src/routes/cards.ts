@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { Container } from "typedi";
 import { z } from "zod";
-import { env } from "../env.js";
 import { CardsRepository } from "../repositories/cards.repository.js";
 
 const cardSideSchema = z.object({
@@ -51,7 +50,7 @@ export async function registerCardRoutes(app: FastifyInstance) {
     const repository = Container.get(CardsRepository);
 
     const card = await repository.createCard({
-      userId: env.DEFAULT_USER_ID,
+      userId: request.userId,
       deckId: params.deckId,
       sides: body.sides,
       tagIds: body.tagIds
