@@ -1,7 +1,33 @@
-const API_URL = "http://127.0.0.1:8000/api";
+import { clearAuthSession, getAuthToken } from "../auth/auth-storage";
+
+function resolveApiUrl() {
+  const apiUrl = import.meta.env.VITE_API_URL;
+
+  if (apiUrl) {
+    return apiUrl.replace(/\/$/, "");
+  }
+
+  if (import.meta.env.DEV) {
+    return "http://127.0.0.1:8000/api";
+  }
+
+  throw new Error("Missing frontend environment variable: VITE_API_URL");
+}
+
+const API_URL = resolveApiUrl();
+
+export function publicApiUrl() {
+  return API_URL.replace(/\/api$/, "");
+}
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
+  const token = getAuthToken();
+
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
@@ -12,6 +38,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthSession();
+      window.dispatchEvent(new Event("memocards:unauthorized"));
+    }
+
     throw new Error(await response.text());
   }
 

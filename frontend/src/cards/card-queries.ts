@@ -1,9 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient
+} from "@tanstack/react-query";
 import { api } from "../shared/api";
 import { deckKeys } from "../deck/deck-queries";
 import type { CardDetail, CardRow, SideTemplate, Tag } from "../shared/types";
 
 export interface CardsQueryFilters {
+  page: number;
+  pageSize: number;
   search: string;
   selectedStatuses: string[];
   selectedTagIds: string[];
@@ -23,9 +30,11 @@ export const cardKeys = {
 export function useDeckCardsQuery(deckId: string, filters: CardsQueryFilters) {
   return useQuery({
     queryKey: cardKeys.list(deckId, filters),
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const query = new URLSearchParams({
-        pageSize: "100",
+        page: String(filters.page),
+        pageSize: String(filters.pageSize),
         sortField: filters.sortField,
         sortDir: filters.sortDir
       });

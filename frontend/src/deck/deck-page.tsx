@@ -17,6 +17,7 @@ import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
 import type { CardRow, SideTemplate } from "../shared/types";
 import { DeckActionsMenu } from "./deck-actions-menu";
+import { DeckShareModal } from "./deck-share-modal";
 import { useDeckQuery, useDeleteDeckMutation } from "./deck-queries";
 import { DeckSettingsModal } from "./deck-settings-modal";
 import { DeckStatsTab } from "./deck-stats-tab";
@@ -29,6 +30,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [cardToDelete, setCardToDelete] = useState<CardRow | null>(null);
   const [isDeleteDeckOpen, setIsDeleteDeckOpen] = useState(false);
   const [isDeckSettingsOpen, setIsDeckSettingsOpen] = useState(false);
+  const [isDeckShareOpen, setIsDeckShareOpen] = useState(false);
   const [isDeckTagsOpen, setIsDeckTagsOpen] = useState(false);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
@@ -39,6 +41,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sideFilters, setSideFilters] = useState<Record<number, "filled" | "empty">>({});
+  const [cardsPage, setCardsPage] = useState(0);
+  const cardsPageSize = 100;
   const tableRef = useRef<HTMLDivElement>(null);
   const deckQuery = useDeckQuery(deckId);
   const reviewTypesQuery = useReviewTypesQuery(deckId);
@@ -78,6 +82,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
 
   const cardFilters = useMemo(
     () => ({
+      page: cardsPage,
+      pageSize: cardsPageSize,
       search: debouncedSearch,
       selectedStatuses,
       selectedTagIds,
@@ -88,6 +94,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
       reviewTypeId: deck?.defaultReviewTypeId ?? null
     }),
     [
+      cardsPage,
+      cardsPageSize,
       debouncedSearch,
       selectedStatuses,
       selectedTagIds,
@@ -98,6 +106,19 @@ export function DeckPage({ deckId }: { deckId: string }) {
       deck?.defaultReviewTypeId
     ]
   );
+
+  useEffect(() => {
+    setCardsPage(0);
+  }, [
+    debouncedSearch,
+    selectedStatuses,
+    selectedTagIds,
+    sideEmpty,
+    sideFilled,
+    sortDir,
+    sortField,
+    deck?.defaultReviewTypeId
+  ]);
 
   const cardsQuery = useDeckCardsQuery(deckId, cardFilters);
   const cards = cardsQuery.data?.cards ?? [];
@@ -233,6 +254,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
               templates={templates}
               onDeleteDeck={() => setIsDeleteDeckOpen(true)}
               onOpenSettings={() => setIsDeckSettingsOpen(true)}
+              onOpenShare={() => setIsDeckShareOpen(true)}
               onOpenTags={() => setIsDeckTagsOpen(true)}
             />
           </div>
@@ -301,8 +323,11 @@ export function DeckPage({ deckId }: { deckId: string }) {
               allTags={deck.tags}
               cards={cards}
               deckId={deckId}
+              isFetching={cardsQuery.isFetching}
               newRow={newRow}
               newTagIds={newTagIds}
+              page={cardsPage}
+              pageSize={cardsPageSize}
               tableRef={tableRef}
               templates={templates}
               totalCount={totalCount}
@@ -312,6 +337,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
               onNewRowChange={setNewRow}
               onNewTagIdsChange={setNewTagIds}
               onOpenCard={setSelectedCardId}
+              onPageChange={setCardsPage}
               onUpdateCardSide={(card, template, content) =>
                 void updateCardSide(card, template, content)
               }
@@ -353,6 +379,13 @@ export function DeckPage({ deckId }: { deckId: string }) {
         deck={deck}
         isOpen={isDeckSettingsOpen}
         onClose={() => setIsDeckSettingsOpen(false)}
+      />
+      <DeckShareModal
+        deckId={deckId}
+        isOpen={isDeckShareOpen}
+        reviewTypes={reviewTypes}
+        templates={templates}
+        onClose={() => setIsDeckShareOpen(false)}
       />
       {cardToDelete && (
         <ConfirmDialog

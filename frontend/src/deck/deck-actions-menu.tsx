@@ -1,4 +1,5 @@
 import {
+  Bot,
   Copy,
   Download,
   FileUp,
@@ -16,6 +17,7 @@ interface DeckActionsMenuProps {
   templates: SideTemplate[];
   onDeleteDeck: () => void;
   onOpenSettings: () => void;
+  onOpenShare: () => void;
   onOpenTags: () => void;
 }
 
@@ -48,6 +50,7 @@ export function DeckActionsMenu({
   deckName,
   onDeleteDeck,
   onOpenSettings,
+  onOpenShare,
   onOpenTags,
   templates
 }: DeckActionsMenuProps) {
@@ -64,6 +67,9 @@ export function DeckActionsMenu({
       </ActionMenuItem>
       <ActionMenuItem onClick={() => window.print()}>
           <Printer size={15} /> Imprimer
+      </ActionMenuItem>
+      <ActionMenuItem onClick={onOpenShare}>
+          <Bot size={15} /> Partager a l'IA
       </ActionMenuItem>
       <ActionMenuItem onClick={onOpenTags}>
           <Tags size={15} /> Gerer les tags

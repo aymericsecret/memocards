@@ -1,10 +1,16 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import { authenticateRequest } from "./auth.js";
 import { env } from "./env.js";
+import { registerAuthRoutes } from "./routes/auth.js";
 import { registerCardRoutes } from "./routes/cards.js";
 import { registerDeckRoutes } from "./routes/decks.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import {
+  registerPublicDeckShareRoutes,
+  registerPublicMarkdownRoutes
+} from "./routes/public-deck-shares.js";
 import { registerReviewTypeRoutes } from "./routes/review-types.js";
 
 export async function buildServer() {
@@ -56,9 +62,18 @@ export async function buildServer() {
   });
 
   await app.register(registerHealthRoutes);
-  await app.register(registerDeckRoutes, { prefix: "/api" });
-  await app.register(registerCardRoutes, { prefix: "/api" });
-  await app.register(registerReviewTypeRoutes, { prefix: "/api" });
+  await app.register(registerPublicMarkdownRoutes);
+  await app.register(registerAuthRoutes, { prefix: "/api" });
+  await app.register(
+    async (api) => {
+      api.addHook("preHandler", authenticateRequest);
+      await api.register(registerDeckRoutes);
+      await api.register(registerCardRoutes);
+      await api.register(registerPublicDeckShareRoutes);
+      await api.register(registerReviewTypeRoutes);
+    },
+    { prefix: "/api" }
+  );
 
   return app;
 }

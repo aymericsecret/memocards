@@ -31,6 +31,7 @@ export const envVariablesSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8000),
   DATABASE_URL: z.string().url(),
   CORS_ALLOWED_ORIGINS: corsAllowedOriginsSchema,
+  AUTH_TOKEN_SECRET: z.string().min(32).default("local-dev-auth-token-secret-change-me"),
   DEFAULT_USER_ID: z.string().uuid().default("00000000-0000-0000-0000-000000000001")
 });
 
@@ -51,6 +52,8 @@ export const parseEnv = ({
       CORS_ALLOWED_ORIGINS:
         process.env.CORS_ALLOWED_ORIGINS ??
         "http://localhost:3000,https://memocards-frontend-develop.up.railway.app",
+      AUTH_TOKEN_SECRET:
+        process.env.AUTH_TOKEN_SECRET ?? "test-auth-token-secret-change-me",
       PORT: process.env.PORT ?? "8000",
       DEFAULT_USER_ID:
         process.env.DEFAULT_USER_ID ?? "00000000-0000-0000-0000-000000000001"

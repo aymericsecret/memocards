@@ -1,5 +1,6 @@
-import { ArrowRight, BookOpen, MoreHorizontal, Play, Plus, Star } from "lucide-react";
+import { ArrowRight, BookOpen, Play, Plus, Settings, Star } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../auth/auth-context";
 import { Button } from "../design-system";
 import { formatLastReview } from "../shared/format";
 import { navigate } from "../shared/navigation";
@@ -30,6 +31,7 @@ const groupColors: Record<GroupKey, string> = {
 };
 
 export function DecksPage() {
+  const auth = useAuth();
   const [creating, setCreating] = useState(false);
   const [selectionMap, setSelectionMap] = useState<Record<string, GroupKey[]>>({});
   const decksQuery = useDecksQuery();
@@ -59,9 +61,17 @@ export function DecksPage() {
             </div>
             <h1>Memora</h1>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Menu">
-            <MoreHorizontal size={18} />
-          </Button>
+          <div className="topbar-user">
+            <span>{auth.user?.displayName || auth.user?.email}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Reglages du compte"
+              onClick={() => navigate("/account")}
+            >
+              <Settings size={18} />
+            </Button>
+          </div>
         </div>
       </header>
 
