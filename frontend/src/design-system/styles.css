@@ -1251,6 +1251,123 @@ td input:focus {
   letter-spacing: 0;
 }
 
+.modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.share-modal-panel {
+  width: min(100%, 520px);
+  max-height: min(90dvh, 760px);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.share-modal-body {
+  min-height: 0;
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.share-side-list {
+  display: grid;
+  gap: 6px;
+}
+
+.share-side-list .check-row {
+  border: 1px solid hsl(var(--border) / 0.55);
+  background: hsl(var(--background));
+}
+
+.share-side-list input {
+  width: 16px;
+  height: 16px;
+}
+
+.share-url-box {
+  display: grid;
+  gap: 10px;
+  border: 1px solid hsl(var(--accent) / 0.22);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: hsl(var(--accent) / 0.06);
+}
+
+.share-url-box code {
+  overflow-wrap: anywhere;
+  color: hsl(var(--foreground));
+  font-size: 0.78rem;
+}
+
+.share-url-box > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.share-existing-list {
+  display: grid;
+  gap: 8px;
+  border-bottom: 1px solid hsl(var(--border) / 0.7);
+  padding-bottom: 14px;
+}
+
+.share-existing-list > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.share-existing-list > div:first-child span,
+.share-empty {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.82rem;
+}
+
+.share-empty {
+  margin: 0;
+}
+
+.share-existing-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid hsl(var(--border) / 0.55);
+  border-radius: var(--radius);
+  padding: 10px;
+  background: hsl(var(--card));
+}
+
+.share-existing-item > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.share-existing-item strong {
+  font-size: 0.86rem;
+}
+
+.share-existing-item span,
+.share-existing-item code {
+  overflow: hidden;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-existing-item > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .field {
   display: grid;
   gap: 7px;

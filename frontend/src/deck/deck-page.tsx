@@ -17,6 +17,7 @@ import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
 import type { CardRow, SideTemplate } from "../shared/types";
 import { DeckActionsMenu } from "./deck-actions-menu";
+import { DeckShareModal } from "./deck-share-modal";
 import { useDeckQuery, useDeleteDeckMutation } from "./deck-queries";
 import { DeckSettingsModal } from "./deck-settings-modal";
 import { DeckStatsTab } from "./deck-stats-tab";
@@ -29,6 +30,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [cardToDelete, setCardToDelete] = useState<CardRow | null>(null);
   const [isDeleteDeckOpen, setIsDeleteDeckOpen] = useState(false);
   const [isDeckSettingsOpen, setIsDeckSettingsOpen] = useState(false);
+  const [isDeckShareOpen, setIsDeckShareOpen] = useState(false);
   const [isDeckTagsOpen, setIsDeckTagsOpen] = useState(false);
   const [newRow, setNewRow] = useState<Record<number, string>>({});
   const [newTagIds, setNewTagIds] = useState<string[]>([]);
@@ -252,6 +254,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
               templates={templates}
               onDeleteDeck={() => setIsDeleteDeckOpen(true)}
               onOpenSettings={() => setIsDeckSettingsOpen(true)}
+              onOpenShare={() => setIsDeckShareOpen(true)}
               onOpenTags={() => setIsDeckTagsOpen(true)}
             />
           </div>
@@ -376,6 +379,13 @@ export function DeckPage({ deckId }: { deckId: string }) {
         deck={deck}
         isOpen={isDeckSettingsOpen}
         onClose={() => setIsDeckSettingsOpen(false)}
+      />
+      <DeckShareModal
+        deckId={deckId}
+        isOpen={isDeckShareOpen}
+        reviewTypes={reviewTypes}
+        templates={templates}
+        onClose={() => setIsDeckShareOpen(false)}
       />
       {cardToDelete && (
         <ConfirmDialog

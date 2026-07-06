@@ -16,6 +16,10 @@ function resolveApiUrl() {
 
 const API_URL = resolveApiUrl();
 
+export function publicApiUrl() {
+  return API_URL.replace(/\/api$/, "");
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   const token = getAuthToken();
