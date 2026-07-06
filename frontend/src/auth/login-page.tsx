@@ -1,5 +1,6 @@
 import { BookOpen } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import styled from "styled-components";
 import { Button, Field } from "../design-system";
 import { api } from "../shared/api";
 import type { AuthResponse } from "./types";
@@ -38,17 +39,17 @@ export function LoginPage({ onAuthenticated }: { onAuthenticated: (session: Auth
   };
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={submit}>
-        <div className="auth-brand">
-          <div className="brand-icon">
+    <Page>
+      <Card onSubmit={submit}>
+        <Brand>
+          <BrandIcon>
             <BookOpen size={16} />
-          </div>
+          </BrandIcon>
           <div>
             <h1>Memora</h1>
             <p>{mode === "login" ? "Connexion" : "Creer un compte"}</p>
           </div>
-        </div>
+        </Brand>
 
         {mode === "register" && (
           <Field label="Nom">
@@ -84,7 +85,7 @@ export function LoginPage({ onAuthenticated }: { onAuthenticated: (session: Auth
           />
         </Field>
 
-        {error && <p className="auth-error">{error}</p>}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <Button disabled={isSubmitting} type="submit">
           {isSubmitting
@@ -94,8 +95,7 @@ export function LoginPage({ onAuthenticated }: { onAuthenticated: (session: Auth
               : "Creer le compte"}
         </Button>
 
-        <button
-          className="auth-switch"
+        <SwitchButton
           onClick={() => {
             setError(null);
             setMode((currentMode) => (currentMode === "login" ? "register" : "login"));
@@ -105,8 +105,78 @@ export function LoginPage({ onAuthenticated }: { onAuthenticated: (session: Auth
           {mode === "login"
             ? "Pas encore de compte ? Creer un compte"
             : "Deja un compte ? Se connecter"}
-        </button>
-      </form>
-    </div>
+        </SwitchButton>
+      </Card>
+    </Page>
   );
 }
+
+const Page = styled.div`
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: ${({ theme }) => theme.colors.background};
+`;
+
+const Card = styled.form`
+  width: min(100%, 420px);
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid hsl(220 13% 91% / 0.7);
+  border-radius: 1.25rem;
+  background: ${({ theme }) => theme.colors.card};
+  box-shadow: 0 24px 70px -32px hsl(220 15% 22% / 0.22);
+`;
+
+const Brand = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: ${({ theme }) => theme.colors.mutedForeground};
+    font-size: 0.85rem;
+  }
+`;
+
+const BrandIcon = styled.div`
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: ${({ theme }) => theme.radii.md};
+  color: ${({ theme }) => theme.colors.accentForeground};
+  background: ${({ theme }) => theme.colors.accent};
+  box-shadow: 0 4px 14px hsl(150 55% 40% / 0.16);
+`;
+
+const ErrorMessage = styled.p`
+  margin: -2px 0 0;
+  border-radius: calc(${({ theme }) => theme.radii.md} - 4px);
+  padding: 10px 12px;
+  color: ${({ theme }) => theme.colors.destructive};
+  background: hsl(0 75% 55% / 0.08);
+  font-size: 0.82rem;
+`;
+
+const SwitchButton = styled.button`
+  border: 0;
+  padding: 0;
+  color: ${({ theme }) => theme.colors.mutedForeground};
+  background: transparent;
+  font-size: 0.85rem;
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.foreground};
+  }
+`;

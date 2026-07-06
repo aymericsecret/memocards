@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, ListChecks, Play, Plus, TableIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, Check, ListChecks, Play, Plus, TableIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createCardSidesPayload,
@@ -11,7 +11,7 @@ import { CardFilters } from "../cards/card-filters";
 import { CardDetailModal } from "../cards/card-detail-modal";
 import { CardTable } from "../cards/card-table";
 import { NewCardModal } from "../cards/new-card-modal";
-import { ActionMenu, ActionMenuItem, Button, ConfirmDialog } from "../design-system";
+import { ActionMenu, ActionMenuItem, Button, ConfirmDialog, FilterMenu } from "../design-system";
 import { ReviewTypesTab } from "../review/review-types-tab";
 import { useReviewTypesQuery } from "../review/review-type-queries";
 import { navigate } from "../shared/navigation";
@@ -132,6 +132,17 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const updateCardMutation = useUpdateCardMutation(deckId);
   const deleteCardMutation = useDeleteCardMutation(deckId);
   const deleteDeckMutation = useDeleteDeckMutation();
+  const deckTabs: Array<{
+    icon: typeof TableIcon;
+    label: string;
+    value: "cards" | "review-types" | "stats";
+  }> = [
+    { icon: TableIcon, label: "Cartes", value: "cards" },
+    { icon: ListChecks, label: "Types de revision", value: "review-types" },
+    { icon: BarChart3, label: "Statistiques", value: "stats" }
+  ];
+  const activeTabLabel =
+    deckTabs.find((tab) => tab.value === activeTab)?.label ?? "Cartes";
 
   const focusCell = useCallback((row: string, col: number) => {
     const next = tableRef.current?.querySelector<HTMLInputElement>(
@@ -269,6 +280,32 @@ export function DeckPage({ deckId }: { deckId: string }) {
           </span>
         </div>
         {deck.description && <p className="deck-description">{deck.description}</p>}
+
+        <div className="mobile-tabs-menu">
+          <FilterMenu align="left" label={activeTabLabel}>
+            <div className="filter-panel compact">
+              {deckTabs.map((tab) => {
+                const Icon = tab.icon;
+                const selected = activeTab === tab.value;
+
+                return (
+                  <button
+                    className={selected ? "option-row selected" : "option-row"}
+                    data-close-menu
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    type="button"
+                  >
+                    <span className="tab-dropdown-label">
+                      <Icon size={14} /> {tab.label}
+                    </span>
+                    {selected && <Check size={16} />}
+                  </button>
+                );
+              })}
+            </div>
+          </FilterMenu>
+        </div>
 
         <div className="tabs-list">
           <button

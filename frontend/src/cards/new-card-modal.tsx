@@ -74,13 +74,18 @@ export function NewCardModal({
         />
       </Field>
 
-      <Button
-        className="modal-submit"
-        disabled={filledSidesCount < 2}
-        onClick={() => void submit()}
-      >
-        Ajouter la carte
-      </Button>
+      <div className="modal-footer">
+        <Button variant="outline" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button
+          className="modal-submit"
+          disabled={filledSidesCount < 2}
+          onClick={() => void submit()}
+        >
+          Ajouter la carte
+        </Button>
+      </div>
     </Modal>
   );
 }

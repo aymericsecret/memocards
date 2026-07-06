@@ -57,8 +57,7 @@ export function NewDeckModal({ onClose, onCreate }: NewDeckModalProps) {
         />
       </Field>
 
-      <div className="field">
-        <span>Faces des cartes</span>
+      <Field label="Faces des cartes">
         <div className="side-list">
           {sideLabels.map((label, index) => (
             <div className="side-row" key={index}>
@@ -93,11 +92,16 @@ export function NewDeckModal({ onClose, onCreate }: NewDeckModalProps) {
         >
           <Plus size={14} /> Ajouter une face
         </Button>
-      </div>
+      </Field>
 
-      <Button className="modal-submit" disabled={!canCreate} onClick={submit}>
-        Creer le paquet
-      </Button>
+      <div className="modal-footer">
+        <Button variant="outline" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button className="modal-submit" disabled={!canCreate} onClick={submit}>
+          Creer le paquet
+        </Button>
+      </div>
 
       {sideIndexToDelete !== null && (
         <ConfirmDialog

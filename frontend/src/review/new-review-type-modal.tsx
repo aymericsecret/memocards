@@ -53,8 +53,7 @@ export function NewReviewTypeModal({
         />
       </Field>
 
-      <label className="field">
-        <span>Face affichee</span>
+      <Field label="Face affichee">
         <select
           value={frontSidePosition}
           onChange={(event) => setFrontSidePosition(Number(event.target.value))}
@@ -65,10 +64,9 @@ export function NewReviewTypeModal({
             </option>
           ))}
         </select>
-      </label>
+      </Field>
 
-      <label className="field">
-        <span>Tag</span>
+      <Field label="Tag">
         <select value={tagId} onChange={(event) => setTagId(event.target.value)}>
           <option value="">Toutes les cartes</option>
           {tags.map((tag) => (
@@ -77,11 +75,16 @@ export function NewReviewTypeModal({
             </option>
           ))}
         </select>
-      </label>
+      </Field>
 
-      <Button className="modal-submit" disabled={!name.trim()} onClick={() => void submit()}>
-        Creer le type de revision
-      </Button>
+      <div className="modal-footer">
+        <Button variant="outline" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button className="modal-submit" disabled={!name.trim()} onClick={() => void submit()}>
+          Creer le type de revision
+        </Button>
+      </div>
     </Modal>
   );
 }

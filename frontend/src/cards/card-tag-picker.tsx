@@ -1,4 +1,4 @@
-import { Plus, X } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Tag } from "../shared/types";
 import {
@@ -106,20 +106,23 @@ export function CardTagPicker({ allTags, cardId, cardTags, deckId }: CardTagPick
 
       {isOpen && (
         <div className="tag-picker-panel">
-          <input
-            value={newTag}
-            onChange={(event) => setNewTag(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void createAndAddTag();
-              }
-              if (event.key === "Escape") {
-                setIsOpen(false);
-              }
-            }}
-            placeholder="Nouveau tag..."
-          />
+          <label className="tag-picker-search">
+            <Search size={15} />
+            <input
+              value={newTag}
+              onChange={(event) => setNewTag(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void createAndAddTag();
+                }
+                if (event.key === "Escape") {
+                  setIsOpen(false);
+                }
+              }}
+              placeholder="Search"
+            />
+          </label>
           {filteredTags.length > 0 && (
             <div className="tag-picker-options">
               {filteredTags.map((tag) => (

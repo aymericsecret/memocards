@@ -244,7 +244,12 @@ export function DeckShareModal({
             </label>
           ))}
         </div>
+      </div>
 
+      <div className="modal-footer">
+        <Button variant="outline" onClick={onClose}>
+          Annuler
+        </Button>
         <Button
           disabled={!reviewTypeId || sidePositions.length === 0 || isSharing}
           onClick={() => void createShare()}

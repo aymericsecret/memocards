@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import styled from "styled-components";
 import { Button } from "./button";
 
 interface ModalProps {
@@ -9,19 +11,22 @@ interface ModalProps {
 }
 
 export function Modal({ children, className = "", labelledBy, onClose }: ModalProps) {
-  return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <section
-        className={["modal-panel", className].filter(Boolean).join(" ")}
+  const panelClassName = ["modal-panel", className].filter(Boolean).join(" ");
+  const modal = (
+    <Backdrop className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <Panel
+        className={panelClassName}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
         onMouseDown={(event) => event.stopPropagation()}
       >
         {children}
-      </section>
-    </div>
+      </Panel>
+    </Backdrop>
   );
+
+  return createPortal(modal, document.body);
 }
 
 export function ModalHeader({
@@ -32,11 +37,48 @@ export function ModalHeader({
   onClose: () => void;
 }) {
   return (
-    <div className="modal-header">
+    <Header className="modal-header">
       {children}
       <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fermer">
         x
       </Button>
-    </div>
+    </Header>
   );
 }
+
+const Backdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: hsl(220 15% 22% / 0.38);
+  isolation: isolate;
+`;
+
+const Panel = styled.section`
+  position: relative;
+  z-index: 1001;
+  width: min(100%, 460px);
+  display: grid;
+  gap: 16px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: 0;
+  padding: 22px;
+  background: ${({ theme }) => theme.colors.card};
+  box-shadow: ${({ theme }) => theme.shadows.modal};
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: ${({ theme }) => theme.fontSizes.xl};
+    letter-spacing: 0;
+  }
+`;

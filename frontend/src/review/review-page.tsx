@@ -195,6 +195,26 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
         ) : (
           <>
             <section className="review-card review-answer-card">
+              <div className="review-card-corner-actions">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setEditingCard(current)}
+                  aria-label="Modifier la carte"
+                >
+                  <Pencil size={15} />
+                </Button>
+                {deck && (
+                  <div className="review-card-tag-action">
+                    <CardTagPicker
+                      allTags={deck.tags}
+                      cardId={current.cardId}
+                      cardTags={current.tags}
+                      deckId={deck.id}
+                    />
+                  </div>
+                )}
+              </div>
               {otherSides.map((side) => (
                 <div key={side.id}>
                   <p>{side.label}</p>
@@ -202,23 +222,6 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
                 </div>
               ))}
             </section>
-
-            <div className="review-card-actions">
-              <Button variant="outline" size="sm" onClick={() => setEditingCard(current)}>
-                <Pencil size={14} /> Modifier
-              </Button>
-              {deck && (
-                <div className="review-tag-shortcut">
-                  <span>Tags</span>
-                  <CardTagPicker
-                    allTags={deck.tags}
-                    cardId={current.cardId}
-                    cardTags={current.tags}
-                    deckId={deck.id}
-                  />
-                </div>
-              )}
-            </div>
 
             <div className="rating-grid">
               {ratingActions.map(({ className, icon: Icon, label, rating }) => (
@@ -234,6 +237,7 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
                 </Button>
               ))}
             </div>
+
           </>
         )}
       </main>
@@ -294,14 +298,19 @@ function ReviewCardEditModal({
 
   useEffect(() => {
     setValues(
-      Object.fromEntries(card.sides.map((side) => [side.position, side.content]))
+      Object.fromEntries(
+        templates.map((template) => [
+          template.position,
+          card.sides.find((side) => side.position === template.position)?.content ?? ""
+        ])
+      )
     );
-  }, [card]);
+  }, [card, templates]);
 
   const filledSidesCount = Object.values(values).filter((value) => value.trim()).length;
 
   return (
-    <Modal labelledBy="review-edit-card-title" onClose={onClose}>
+    <Modal className="review-edit-card-modal-panel" labelledBy="review-edit-card-title" onClose={onClose}>
       <ModalHeader onClose={onClose}>
         <h2 id="review-edit-card-title">Modifier la carte</h2>
       </ModalHeader>
@@ -335,14 +344,19 @@ function ReviewCardEditModal({
         </Field>
       )}
 
-      <Button
-        className="modal-submit"
-        disabled={filledSidesCount < 2 || isSaving}
-        onClick={() => onSave(createCardSidesPayload(templates, values))}
-      >
-        {isSaving ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
-        Enregistrer
-      </Button>
+      <div className="modal-footer">
+        <Button variant="outline" onClick={onClose}>
+          Annuler
+        </Button>
+        <Button
+          className="modal-submit"
+          disabled={filledSidesCount < 2 || isSaving}
+          onClick={() => onSave(createCardSidesPayload(templates, values))}
+        >
+          {isSaving ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+          Enregistrer
+        </Button>
+      </div>
     </Modal>
   );
 }

@@ -4,3 +4,5 @@ export { ConfirmDialog } from "./confirm-dialog";
 export { Field } from "./field";
 export { FilterMenu } from "./filter-menu";
 export { Modal, ModalHeader } from "./modal";
+export { GlobalStyle } from "./global-styles";
+export { theme } from "./theme";

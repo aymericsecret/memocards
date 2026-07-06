@@ -76,7 +76,7 @@ export function ReviewTypeSettingsModal({
         <span>Reinitialiser supprime l'historique de revision de ce type.</span>
       </div>
 
-      <div className="modal-actions">
+      <div className="modal-actions modal-footer">
         <Button
           className="danger-outline"
           variant="outline"

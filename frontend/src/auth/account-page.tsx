@@ -1,5 +1,6 @@
 import { ArrowLeft, BookOpen, LogOut, Save } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import styled from "styled-components";
 import { Button, Field } from "../design-system";
 import { api } from "../shared/api";
 import { navigate } from "../shared/navigation";
@@ -80,14 +81,14 @@ export function AccountPage() {
         </div>
       </header>
 
-      <main className="container account-main">
-        <div className="account-heading">
+      <Main className="container">
+        <Heading>
           <h2>Compte</h2>
           <p>{auth.user?.email}</p>
-        </div>
+        </Heading>
 
-        <div className="account-grid">
-          <form className="account-panel" onSubmit={saveProfile}>
+        <Grid>
+          <Panel onSubmit={saveProfile}>
             <div>
               <h3>Profil</h3>
               <p>Nom affiche dans l'application.</p>
@@ -99,14 +100,14 @@ export function AccountPage() {
                 value={displayName}
               />
             </Field>
-            {profileError && <p className="auth-error">{profileError}</p>}
-            {profileMessage && <p className="account-success">{profileMessage}</p>}
+            {profileError && <ErrorMessage>{profileError}</ErrorMessage>}
+            {profileMessage && <SuccessMessage>{profileMessage}</SuccessMessage>}
             <Button disabled={isSavingProfile} type="submit">
               <Save size={15} /> Enregistrer
             </Button>
-          </form>
+          </Panel>
 
-          <form className="account-panel" onSubmit={savePassword}>
+          <Panel onSubmit={savePassword}>
             <div>
               <h3>Mot de passe</h3>
               <p>Utilisez au moins 8 caracteres.</p>
@@ -130,18 +131,93 @@ export function AccountPage() {
                 value={newPassword}
               />
             </Field>
-            {passwordError && <p className="auth-error">{passwordError}</p>}
-            {passwordMessage && <p className="account-success">{passwordMessage}</p>}
+            {passwordError && <ErrorMessage>{passwordError}</ErrorMessage>}
+            {passwordMessage && <SuccessMessage>{passwordMessage}</SuccessMessage>}
             <Button disabled={isSavingPassword} type="submit">
               <Save size={15} /> Mettre a jour
             </Button>
-          </form>
-        </div>
+          </Panel>
+        </Grid>
 
         <Button variant="outline" onClick={auth.logout}>
           <LogOut size={15} /> Se deconnecter
         </Button>
-      </main>
+      </Main>
     </div>
   );
 }
+
+const Main = styled.main`
+  display: grid;
+  gap: 24px;
+  padding: 40px 0;
+`;
+
+const Heading = styled.div`
+  display: grid;
+  gap: 6px;
+
+  h2 {
+    margin: 0;
+    font-size: clamp(2.2rem, 7vw, 4rem);
+    line-height: 0.95;
+  }
+
+  p {
+    margin: 0;
+    color: ${({ theme }) => theme.colors.mutedForeground};
+  }
+`;
+
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Panel = styled.form`
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  border: 1px solid hsl(220 13% 91% / 0.7);
+  border-radius: ${({ theme }) => theme.radii.md};
+  padding: 20px;
+  background: ${({ theme }) => theme.colors.card};
+
+  h3 {
+    margin: 0;
+    font-size: ${({ theme }) => theme.fontSizes.lg};
+  }
+
+  p {
+    margin: 5px 0 0;
+    color: ${({ theme }) => theme.colors.mutedForeground};
+    font-size: 0.86rem;
+  }
+
+  @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
+    padding: 16px;
+  }
+`;
+
+const ErrorMessage = styled.p`
+  margin: -2px 0 0;
+  border-radius: calc(${({ theme }) => theme.radii.md} - 4px);
+  padding: 10px 12px;
+  color: ${({ theme }) => theme.colors.destructive};
+  background: hsl(0 75% 55% / 0.08);
+  font-size: 0.82rem;
+`;
+
+const SuccessMessage = styled.p`
+  margin: -2px 0 0;
+  border-radius: calc(${({ theme }) => theme.radii.md} - 4px);
+  padding: 10px 12px;
+  color: ${({ theme }) => theme.colors.accent};
+  background: hsl(150 55% 40% / 0.08);
+  font-size: 0.82rem;
+`;

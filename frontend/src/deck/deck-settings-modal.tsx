@@ -124,14 +124,6 @@ export function DeckSettingsModal({ deck, isOpen, onClose }: DeckSettingsModalPr
                 </button>
               ))}
             </div>
-
-            <Button
-              className="modal-submit"
-              disabled={!canSaveDeck || updateDeckMutation.isPending}
-              onClick={() => void saveRetention()}
-            >
-              <Check size={16} /> Enregistrer
-            </Button>
           </section>
         )}
 
@@ -174,14 +166,6 @@ export function DeckSettingsModal({ deck, isOpen, onClose }: DeckSettingsModalPr
             >
               <Plus size={14} /> Ajouter une face
             </Button>
-
-            <Button
-              className="modal-submit"
-              disabled={!canSaveSides || updateSideTemplatesMutation.isPending}
-              onClick={() => void saveSides()}
-            >
-              <Check size={16} /> Enregistrer les faces
-            </Button>
           </section>
         )}
 
@@ -199,6 +183,36 @@ export function DeckSettingsModal({ deck, isOpen, onClose }: DeckSettingsModalPr
           </section>
         )}
       </div>
+
+      {activeTab === "retention" && (
+        <div className="modal-footer">
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            className="modal-submit"
+            disabled={!canSaveDeck || updateDeckMutation.isPending}
+            onClick={() => void saveRetention()}
+          >
+            <Check size={16} /> Enregistrer
+          </Button>
+        </div>
+      )}
+
+      {activeTab === "sides" && (
+        <div className="modal-footer">
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            className="modal-submit"
+            disabled={!canSaveSides || updateSideTemplatesMutation.isPending}
+            onClick={() => void saveSides()}
+          >
+            <Check size={16} /> Enregistrer les faces
+          </Button>
+        </div>
+      )}
 
       {sideIndexToDelete !== null && (
         <ConfirmDialog

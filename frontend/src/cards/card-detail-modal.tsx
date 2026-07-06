@@ -28,7 +28,7 @@ export function CardDetailModal({ allTags = [], cardId, deckId, onClose }: CardD
   if (!cardId) return null;
 
   return (
-    <Modal labelledBy="card-detail-title" onClose={onClose}>
+    <Modal className="card-detail-modal-panel" labelledBy="card-detail-title" onClose={onClose}>
       <ModalHeader onClose={onClose}>
         <h2 id="card-detail-title">Detail de la carte</h2>
       </ModalHeader>
