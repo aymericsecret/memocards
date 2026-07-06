@@ -13,6 +13,7 @@ interface AuthContextValue {
   login: (session: AuthResponse) => void;
   logout: () => void;
   token: string | null;
+  updateUser: (user: AuthUser) => void;
   user: AuthUser | null;
 }
 
@@ -39,6 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.dispatchEvent(new PopStateEvent("popstate"));
       },
       token,
+      updateUser: (nextUser) => {
+        if (!token) return;
+        storeAuthSession(token, nextUser);
+        setUser(nextUser);
+      },
       user
     }),
     [token, user]

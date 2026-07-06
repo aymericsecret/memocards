@@ -39,6 +39,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sideFilters, setSideFilters] = useState<Record<number, "filled" | "empty">>({});
+  const [cardsPage, setCardsPage] = useState(0);
+  const cardsPageSize = 100;
   const tableRef = useRef<HTMLDivElement>(null);
   const deckQuery = useDeckQuery(deckId);
   const reviewTypesQuery = useReviewTypesQuery(deckId);
@@ -78,6 +80,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
 
   const cardFilters = useMemo(
     () => ({
+      page: cardsPage,
+      pageSize: cardsPageSize,
       search: debouncedSearch,
       selectedStatuses,
       selectedTagIds,
@@ -88,6 +92,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
       reviewTypeId: deck?.defaultReviewTypeId ?? null
     }),
     [
+      cardsPage,
+      cardsPageSize,
       debouncedSearch,
       selectedStatuses,
       selectedTagIds,
@@ -98,6 +104,19 @@ export function DeckPage({ deckId }: { deckId: string }) {
       deck?.defaultReviewTypeId
     ]
   );
+
+  useEffect(() => {
+    setCardsPage(0);
+  }, [
+    debouncedSearch,
+    selectedStatuses,
+    selectedTagIds,
+    sideEmpty,
+    sideFilled,
+    sortDir,
+    sortField,
+    deck?.defaultReviewTypeId
+  ]);
 
   const cardsQuery = useDeckCardsQuery(deckId, cardFilters);
   const cards = cardsQuery.data?.cards ?? [];
@@ -301,8 +320,11 @@ export function DeckPage({ deckId }: { deckId: string }) {
               allTags={deck.tags}
               cards={cards}
               deckId={deckId}
+              isFetching={cardsQuery.isFetching}
               newRow={newRow}
               newTagIds={newTagIds}
+              page={cardsPage}
+              pageSize={cardsPageSize}
               tableRef={tableRef}
               templates={templates}
               totalCount={totalCount}
@@ -312,6 +334,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
               onNewRowChange={setNewRow}
               onNewTagIdsChange={setNewTagIds}
               onOpenCard={setSelectedCardId}
+              onPageChange={setCardsPage}
               onUpdateCardSide={(card, template, content) =>
                 void updateCardSide(card, template, content)
               }

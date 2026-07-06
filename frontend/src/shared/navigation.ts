@@ -1,9 +1,12 @@
 export type Route =
+  | { name: "account" }
   | { name: "dashboard" }
   | { name: "deck"; deckId: string }
   | { name: "reviewType"; reviewTypeId: string };
 
 export function routeFromLocation(): Route {
+  if (window.location.pathname === "/account") return { name: "account" };
+
   const deckMatch = window.location.pathname.match(/^\/deck\/([^/]+)$/);
   if (deckMatch) return { name: "deck", deckId: deckMatch[1] };
 

@@ -9,8 +9,11 @@ interface CardTableProps {
   allTags: Tag[];
   cards: CardRow[];
   deckId: string;
+  isFetching: boolean;
   newRow: Record<number, string>;
   newTagIds: string[];
+  page: number;
+  pageSize: number;
   tableRef: RefObject<HTMLDivElement | null>;
   templates: SideTemplate[];
   totalCount: number;
@@ -20,6 +23,7 @@ interface CardTableProps {
   onNewRowChange: (value: Record<number, string>) => void;
   onNewTagIdsChange: (tagIds: string[]) => void;
   onOpenCard: (cardId: string) => void;
+  onPageChange: (page: number) => void;
   onUpdateCardSide: (card: CardRow, template: SideTemplate, content: string) => void;
 }
 
@@ -27,8 +31,11 @@ export function CardTable({
   allTags,
   cards,
   deckId,
+  isFetching,
   newRow,
   newTagIds,
+  page,
+  pageSize,
   tableRef,
   templates,
   totalCount,
@@ -38,8 +45,14 @@ export function CardTable({
   onNewRowChange,
   onNewTagIdsChange,
   onOpenCard,
+  onPageChange,
   onUpdateCardSide
 }: CardTableProps) {
+  const firstVisibleCard = totalCount === 0 ? 0 : page * pageSize + 1;
+  const lastVisibleCard = Math.min(totalCount, page * pageSize + cards.length);
+  const canGoPrevious = page > 0;
+  const canGoNext = (page + 1) * pageSize < totalCount;
+
   return (
     <>
       <div className="table-frame" ref={tableRef}>
@@ -183,6 +196,32 @@ export function CardTable({
         <p className="empty-table-note">
           Commencez a ajouter des cartes dans le tableau ci-dessus
         </p>
+      )}
+
+      {totalCount > 0 && (
+        <div className="table-pagination">
+          <span>
+            {firstVisibleCard}-{lastVisibleCard} sur {totalCount}
+          </span>
+          <div>
+            <Button
+              disabled={!canGoPrevious || isFetching}
+              onClick={() => onPageChange(page - 1)}
+              size="sm"
+              variant="outline"
+            >
+              Precedent
+            </Button>
+            <Button
+              disabled={!canGoNext || isFetching}
+              onClick={() => onPageChange(page + 1)}
+              size="sm"
+              variant="outline"
+            >
+              Suivant
+            </Button>
+          </div>
+        </div>
       )}
     </>
   );

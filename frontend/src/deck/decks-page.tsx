@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, MoreHorizontal, Play, Plus, Star } from "lucide-react";
+import { ArrowRight, BookOpen, Play, Plus, Settings, Star } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../auth/auth-context";
 import { Button } from "../design-system";
@@ -63,8 +63,13 @@ export function DecksPage() {
           </div>
           <div className="topbar-user">
             <span>{auth.user?.displayName || auth.user?.email}</span>
-            <Button variant="ghost" size="icon" aria-label="Deconnexion" onClick={auth.logout}>
-              <MoreHorizontal size={18} />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Reglages du compte"
+              onClick={() => navigate("/account")}
+            >
+              <Settings size={18} />
             </Button>
           </div>
         </div>

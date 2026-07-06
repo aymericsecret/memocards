@@ -18,6 +18,15 @@ const registerSchema = credentialsSchema.extend({
   displayName: z.string().trim().min(1).optional()
 });
 
+const updateProfileSchema = z.object({
+  displayName: z.string().trim().min(1).nullable()
+});
+
+const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8)
+});
+
 function toAuthResponse(user: { display_name: string | null; email: string; id: string }) {
   return {
     user: {
@@ -79,5 +88,43 @@ export async function registerAuthRoutes(app: FastifyInstance) {
           }
         : null
     };
+  });
+
+  app.patch("/auth/me", { preHandler: authenticateRequest }, async (request, reply) => {
+    const body = updateProfileSchema.parse(request.body);
+    const repository = Container.get(UsersRepository);
+    const user = await repository.updateDisplayName(request.userId, body.displayName);
+
+    if (!user) {
+      return reply.status(404).send({
+        error: "Not Found",
+        message: "User not found"
+      });
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.display_name
+      }
+    };
+  });
+
+  app.patch("/auth/password", { preHandler: authenticateRequest }, async (request, reply) => {
+    const body = updatePasswordSchema.parse(request.body);
+    const repository = Container.get(UsersRepository);
+    const user = await repository.findById(request.userId);
+
+    if (!user?.password_hash || !verifyPassword(body.currentPassword, user.password_hash)) {
+      return reply.status(400).send({
+        error: "Bad Request",
+        message: "Invalid current password"
+      });
+    }
+
+    await repository.updatePassword(request.userId, hashPassword(body.newPassword));
+
+    return { ok: true };
   });
 }

@@ -65,4 +65,32 @@ export class UsersRepository {
 
     return result.rows[0];
   }
+
+  async updateDisplayName(userId: string, displayName: string | null) {
+    const result = await this.database.query<UserRow>(
+      `
+      update users
+      set display_name = $2::text
+      where id = $1::uuid
+      returning id, email, display_name, password_hash
+      `,
+      [userId, displayName]
+    );
+
+    return result.rows[0] ?? null;
+  }
+
+  async updatePassword(userId: string, passwordHash: string) {
+    const result = await this.database.query<UserRow>(
+      `
+      update users
+      set password_hash = $2::text
+      where id = $1::uuid
+      returning id, email, display_name, password_hash
+      `,
+      [userId, passwordHash]
+    );
+
+    return result.rows[0] ?? null;
+  }
 }

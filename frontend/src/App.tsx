@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { LoginPage } from "./auth/login-page";
 import { useAuth } from "./auth/auth-context";
+import { AccountPage } from "./auth/account-page";
 import { DeckPage } from "./deck/deck-page";
 import { DecksPage } from "./deck/decks-page";
 import { ReviewPage } from "./review/review-page";
@@ -26,6 +27,7 @@ export function App() {
     return <LoginPage onAuthenticated={auth.login} />;
   }
 
+  if (route.name === "account") return <AccountPage />;
   if (route.name === "deck") return <DeckPage deckId={route.deckId} />;
   if (route.name === "reviewType") {
     return <ReviewPage reviewTypeId={route.reviewTypeId} />;
