@@ -63,7 +63,7 @@ function CardDetailContent({
   const totalLapses = card.reviewStates.reduce((sum, state) => sum + state.lapses, 0);
 
   return (
-    <div className="card-detail-body">
+    <div className={activeTab === "stats" ? "card-detail-body stats-mode" : "card-detail-body"}>
       <div className="modal-tabs-list card-detail-tabs">
         <button
           className={activeTab === "card" ? "modal-tab active" : "modal-tab"}

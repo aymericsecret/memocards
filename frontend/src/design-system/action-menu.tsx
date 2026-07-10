@@ -158,7 +158,7 @@ const Panel = styled.div`
   right: 0;
   top: 42px;
   z-index: 20;
-  min-width: 240px;
+  min-width: 224px;
   max-width: min(340px, calc(100vw - 32px));
   width: max-content;
   display: grid;
@@ -184,6 +184,7 @@ const ItemButton = styled.button`
   padding: 0 ${({ theme }) => theme.space[5]};
   color: ${({ theme }) => theme.colors.foreground};
   background: transparent;
+  font-size: 13px;
   text-align: left;
   white-space: nowrap;
 

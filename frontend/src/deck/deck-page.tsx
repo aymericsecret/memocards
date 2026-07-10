@@ -1,4 +1,4 @@
-import { ArrowLeft, BarChart3, Check, ListChecks, Play, Plus, TableIcon } from "lucide-react";
+import { ArrowLeft, BarChart3, ListChecks, Play, Plus, TableIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createCardSidesPayload,
@@ -299,7 +299,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
                     <span className="tab-dropdown-label">
                       <Icon size={14} /> {tab.label}
                     </span>
-                    {selected && <Check size={16} />}
+                    {selected && <span className="material-check">check</span>}
                   </button>
                 );
               })}

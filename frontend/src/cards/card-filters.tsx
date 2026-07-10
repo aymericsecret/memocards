@@ -1,4 +1,4 @@
-import { Check, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { FilterMenu } from "../design-system";
 import type { SideTemplate, Tag } from "../shared/types";
 
@@ -72,7 +72,7 @@ export function CardFilters({
                 type="button"
               >
                 <span>{option.label}</span>
-                {selected && <Check size={16} />}
+                {selected && <span className="material-check">check</span>}
               </button>
             );
           })}
@@ -81,7 +81,6 @@ export function CardFilters({
 
       <FilterMenu label="Tags">
         <div className="filter-panel">
-          <p className="filter-title">Tags</p>
           {tags.length === 0 ? (
             <p className="filter-empty">Aucun tag</p>
           ) : (
@@ -107,7 +106,6 @@ export function CardFilters({
 
       <FilterMenu label="Statut">
         <div className="filter-panel compact">
-          <p className="filter-title">Statut</p>
           {[
             ["new", "Nouvelle"],
             ["learning", "En apprentissage"],
@@ -133,7 +131,6 @@ export function CardFilters({
 
       <FilterMenu label="Faces" wide>
         <div className="filter-panel">
-          <p className="filter-title">Faces des cartes</p>
           {templates.map((template) => (
             <div className="side-filter-row" key={template.id}>
               <span>{template.label}</span>
@@ -151,7 +148,7 @@ export function CardFilters({
                     onSideFiltersChange(next);
                   }}
                 >
-                  {value === "filled" && <Check size={12} />}
+                  {value === "filled" && <span className="material-check">check</span>}
                   {value === "filled" ? "Remplie" : "Vide"}
                 </button>
               ))}

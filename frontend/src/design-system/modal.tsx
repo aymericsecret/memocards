@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { Button } from "./button";
@@ -11,6 +11,15 @@ interface ModalProps {
 }
 
 export function Modal({ children, className = "", labelledBy, onClose }: ModalProps) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const panelClassName = ["modal-panel", className].filter(Boolean).join(" ");
   const modal = (
     <Backdrop className="modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -55,6 +64,8 @@ const Backdrop = styled.div`
   padding: 20px;
   background: hsl(220 15% 22% / 0.38);
   isolation: isolate;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 `;
 
 const Panel = styled.section`
@@ -68,6 +79,9 @@ const Panel = styled.section`
   padding: 22px;
   background: ${({ theme }) => theme.colors.card};
   box-shadow: ${({ theme }) => theme.shadows.modal};
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 `;
 
 const Header = styled.div`

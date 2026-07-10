@@ -86,6 +86,7 @@ const Root = styled.div<{ $align: "auto" | "left" | "right"; $wide: boolean }>`
     right: 0;
     top: 40px;
     z-index: 25;
+    min-width: 224px;
     width: ${({ $wide }) => ($wide ? "min(420px, calc(100vw - 32px))" : "min(280px, calc(100vw - 32px))")};
     display: grid;
     gap: 2px;
@@ -97,6 +98,7 @@ const Root = styled.div<{ $align: "auto" | "left" | "right"; $wide: boolean }>`
   }
 
   .filter-panel.compact {
+    min-width: 224px;
     width: min(250px, calc(100vw - 32px));
   }
 

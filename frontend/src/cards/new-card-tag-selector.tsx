@@ -1,5 +1,6 @@
 import { Plus, Search, X } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Input } from "../design-system";
 import type { Tag } from "../shared/types";
 import { useCreateTagMutation } from "./card-queries";
 
@@ -18,8 +19,10 @@ export function NewCardTagSelector({
 }: NewCardTagSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
+  const [placement, setPlacement] = useState<"bottom" | "top">("bottom");
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const createTagMutation = useCreateTagMutation(deckId);
   const selectedTags = allTags.filter((tag) => selectedTagIds.includes(tag.id));
   const availableTags = useMemo(
@@ -31,6 +34,21 @@ export function NewCardTagSelector({
         tag.name.toLowerCase().includes(newTag.trim().toLowerCase())
       )
     : availableTags;
+
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    const trigger = ref.current?.querySelector<HTMLButtonElement>(".tag-add-button");
+    const panel = panelRef.current;
+    if (!trigger || !panel) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const panelHeight = panel.offsetHeight;
+    const spaceBelow = window.innerHeight - triggerRect.bottom;
+    const spaceAbove = triggerRect.top;
+
+    setPlacement(spaceBelow < panelHeight + 12 && spaceAbove > spaceBelow ? "top" : "bottom");
+  }, [filteredTags.length, isOpen, newTag]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -104,22 +122,24 @@ export function NewCardTagSelector({
       </div>
 
       {isOpen && (
-        <div className="tag-picker-panel">
-          <label className="tag-picker-search">
-            <Search size={15} />
-            <input
-              value={newTag}
-              onChange={(event) => setNewTag(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void createAndSelectTag();
-                }
-                if (event.key === "Escape") setIsOpen(false);
-              }}
-              placeholder="Search"
-            />
-          </label>
+        <div
+          className={placement === "top" ? "tag-picker-panel open-up" : "tag-picker-panel"}
+          ref={panelRef}
+        >
+          <Input
+            className="tag-picker-search"
+            leading={<Search size={15} />}
+            value={newTag}
+            onChange={(event) => setNewTag(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void createAndSelectTag();
+              }
+              if (event.key === "Escape") setIsOpen(false);
+            }}
+            placeholder="Search"
+          />
           {filteredTags.length > 0 && (
             <div className="tag-picker-options">
               {filteredTags.map((tag) => (

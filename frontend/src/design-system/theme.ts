@@ -32,8 +32,8 @@ export const theme = {
     controlSm: "32px",
     controlMd: "36px",
     iconButton: "36px",
-    input: "38px",
-    menuItem: "34px"
+    input: "39px",
+    menuItem: "28px"
   },
   space: {
     0: "0",
