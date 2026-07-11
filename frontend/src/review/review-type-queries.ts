@@ -17,8 +17,12 @@ export interface UpdateReviewTypeInput {
 
 export const reviewTypeKeys = {
   detail: (reviewTypeId: string) => ["reviewType", reviewTypeId] as const,
-  dueCards: (reviewTypeId: string, groups: string | null) =>
-    ["reviewTypeDueCards", reviewTypeId, groups] as const,
+  dueCards: (
+    reviewTypeId: string,
+    groups: string | null,
+    snapshotAt: string,
+    excludeCardIds: string
+  ) => ["reviewTypeDueCards", reviewTypeId, groups, snapshotAt, excludeCardIds] as const,
   list: (deckId: string) => ["reviewTypes", deckId] as const
 };
 
@@ -44,17 +48,33 @@ export function useReviewTypeQuery(reviewTypeId: string) {
   });
 }
 
-export function useDueReviewCardsQuery(reviewTypeId: string, groups: string | null) {
+export function useDueReviewCardsQuery(
+  reviewTypeId: string,
+  groups: string | null,
+  snapshotAt: string,
+  excludeCardIds: string[]
+) {
+  const excludeCardIdsKey = excludeCardIds.join(",");
+
   return useQuery({
-    queryKey: reviewTypeKeys.dueCards(reviewTypeId, groups),
+    queryKey: reviewTypeKeys.dueCards(reviewTypeId, groups, snapshotAt, excludeCardIdsKey),
     queryFn: async () => {
-      const query = new URLSearchParams({ pageSize: "100" });
+      const query = new URLSearchParams({
+        page: "0",
+        pageSize: "100",
+        snapshotAt
+      });
       if (groups) query.set("groups", groups);
+      if (excludeCardIdsKey) query.set("excludeCardIds", excludeCardIdsKey);
 
       return api<{ cards: ReviewCard[]; totalCount: number }>(
         `/review-types/${reviewTypeId}/due-cards?${query.toString()}`
       );
-    }
+    },
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity
   });
 }
 
@@ -143,7 +163,6 @@ export function useSubmitReviewMutation(reviewTypeId: string, deckId: string | n
         body: JSON.stringify(input)
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards", reviewTypeId] });
       if (deckId) {
         void queryClient.invalidateQueries({ queryKey: reviewTypeKeys.list(deckId) });
         void queryClient.invalidateQueries({ queryKey: deckKeys.detail(deckId) });

@@ -43,7 +43,16 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
   const reviewType = reviewTypeQuery.data ?? null;
   const deckQuery = useDeckQuery(reviewType?.deckId ?? null);
   const deck = deckQuery.data ?? null;
-  const cardsQuery = useDueReviewCardsQuery(reviewTypeId, groups);
+  const [sessionStartedAt] = useState(() => new Date().toISOString());
+  const [excludedCardIds, setExcludedCardIds] = useState<string[]>([]);
+  const [sessionCards, setSessionCards] = useState<ReviewCard[]>([]);
+  const [sessionTotalCount, setSessionTotalCount] = useState<number | null>(null);
+  const cardsQuery = useDueReviewCardsQuery(
+    reviewTypeId,
+    groups,
+    sessionStartedAt,
+    excludedCardIds
+  );
   const submitReviewMutation = useSubmitReviewMutation(reviewTypeId, reviewType?.deckId ?? null);
   const updateCardMutation = useUpdateCardMutation(reviewType?.deckId ?? "");
   const [reviewedCardIds, setReviewedCardIds] = useState<string[]>([]);
@@ -52,18 +61,36 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
   const [showStopDialog, setShowStopDialog] = useState(false);
   const [editingCard, setEditingCard] = useState<ReviewCard | null>(null);
 
+  useEffect(() => {
+    if (!cardsQuery.data) return;
+
+    const nextCards = cardsQuery.data.cards;
+    setSessionTotalCount(excludedCardIds.length + cardsQuery.data.totalCount);
+
+    if (nextCards.length === 0) return;
+
+    setSessionCards((currentCards) => {
+      const nextCardsById = new Map(nextCards.map((card) => [card.cardId, card]));
+      const currentCardIds = new Set(currentCards.map((card) => card.cardId));
+      const updatedCards = currentCards.map(
+        (card) => nextCardsById.get(card.cardId) ?? card
+      );
+      const newCards = nextCards.filter((card) => !currentCardIds.has(card.cardId));
+
+      return [...updatedCards, ...newCards];
+    });
+  }, [cardsQuery.data, excludedCardIds.length]);
+
   const pendingCards = useMemo(
     () =>
-      (cardsQuery.data?.cards ?? []).filter(
-        (card) => !reviewedCardIds.includes(card.cardId)
-      ),
-    [cardsQuery.data?.cards, reviewedCardIds]
+      sessionCards.filter((card) => !reviewedCardIds.includes(card.cardId)),
+    [reviewedCardIds, sessionCards]
   );
   const current = pendingCards[0] ?? null;
   const editableCard = editingCard
     ? pendingCards.find((card) => card.cardId === editingCard.cardId) ?? editingCard
     : null;
-  const totalDue = cardsQuery.data?.totalCount ?? 0;
+  const totalDue = sessionTotalCount ?? cardsQuery.data?.totalCount ?? 0;
   const reviewedCount = reviewedCardIds.length;
   const backPath = reviewType?.deckId ? `/deck/${reviewType.deckId}` : "/";
 
@@ -77,16 +104,25 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
       cardId: card.cardId,
       rating
     });
-    setReviewedCardIds((ids) => [...ids, card.cardId]);
+
+    const nextReviewedCardIds = reviewedCardIds.includes(card.cardId)
+      ? reviewedCardIds
+      : [...reviewedCardIds, card.cardId];
+    setReviewedCardIds(nextReviewedCardIds);
     setRevealed(false);
 
-    if (pendingCards.length <= 1) {
-      const refreshed = await cardsQuery.refetch();
-      const nextCards = (refreshed.data?.cards ?? []).filter(
-        (candidate) =>
-          candidate.cardId !== card.cardId && !reviewedCardIds.includes(candidate.cardId)
-      );
-      if (nextCards.length === 0) setFinished(true);
+    const hasRemainingLoadedCard = sessionCards.some(
+      (sessionCard) => !nextReviewedCardIds.includes(sessionCard.cardId)
+    );
+    const loadedCardsCount = sessionCards.length;
+    const hasMoreSessionCards = loadedCardsCount < totalDue;
+
+    if (!hasRemainingLoadedCard) {
+      if (hasMoreSessionCards) {
+        setExcludedCardIds(sessionCards.map((sessionCard) => sessionCard.cardId));
+      } else {
+        setFinished(true);
+      }
     }
   };
 
@@ -122,7 +158,7 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
     );
   }
 
-  if (reviewTypeQuery.isLoading || cardsQuery.isLoading || !reviewType) {
+  if (reviewTypeQuery.isLoading || (cardsQuery.isLoading && sessionCards.length === 0) || !reviewType) {
     return (
       <div className="loading-page">
         <Loader2 className="spin" size={18} /> Chargement...
@@ -131,6 +167,14 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
   }
 
   if (!current) {
+    if (cardsQuery.isFetching && sessionCards.length > 0) {
+      return (
+        <div className="loading-page">
+          <Loader2 className="spin" size={18} /> Chargement de la suite...
+        </div>
+      );
+    }
+
     return (
       <div className="review-complete-page">
         <div className="review-complete">
@@ -158,9 +202,6 @@ export function ReviewPage({ reviewTypeId }: { reviewTypeId: string }) {
     <div className="review-shell">
       <header className="review-topbar">
         <div className="review-topbar-inner">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backPath)} aria-label="Retour">
-            <ArrowLeft size={18} />
-          </Button>
           <div>
             <p>{reviewType.name}</p>
             <span>

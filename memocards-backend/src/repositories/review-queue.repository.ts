@@ -4,9 +4,11 @@ import type { ReviewGroupKey } from "./deck-cards.repository.js";
 
 export interface GetDueReviewCardsParams {
   reviewTypeId: string;
+  excludeCardIds?: string[] | null;
   groups?: ReviewGroupKey[] | null;
   limit: number;
   offset: number;
+  snapshotAt: string;
 }
 
 interface DueReviewCardRow {
@@ -55,17 +57,17 @@ export class ReviewQueueRepository {
           coalesce(rtc.reps, 0)::int as reps,
           coalesce(rtc.lapses, 0)::int as lapses,
           coalesce(rtc.state, 0)::int as state,
-          coalesce(rtc.due, now()) as due,
+          coalesce(rtc.due, $5::timestamptz) as due,
           rtc.last_review,
           coalesce(rtc.learning_status, 'new'::learning_status)::text as learning_status,
           coalesce(rtc.recent_ratings, '{}'::smallint[])::smallint[] as recent_ratings,
           case
             when rtc.id is null then 'new'
-            when rtc.due <= now() then 'now'
-            when rtc.due <= now() + interval '1 hour' then 'in1h'
-            when rtc.due <= now() + interval '24 hours' then 'in24h'
-            when rtc.due <= now() + interval '48 hours' then 'tomorrow'
-            when rtc.due <= now() + interval '7 days' then 'inWeek'
+            when rtc.due <= $5::timestamptz then 'now'
+            when rtc.due <= $5::timestamptz + interval '1 hour' then 'in1h'
+            when rtc.due <= $5::timestamptz + interval '24 hours' then 'in24h'
+            when rtc.due <= $5::timestamptz + interval '48 hours' then 'tomorrow'
+            when rtc.due <= $5::timestamptz + interval '7 days' then 'inWeek'
             else 'later'
           end as review_group
         from review_type rt
@@ -89,12 +91,13 @@ export class ReviewQueueRepository {
               and front_side.position = rt.front_side_position
               and btrim(front_side.content) <> ''
           )
+          and ($6::uuid[] is null or c.id <> all($6::uuid[]))
       ),
       filtered as (
         select *
         from eligible
         where (
-          ($2::text[] is null and (review_type_card_id is null or due <= now()))
+          ($2::text[] is null and (review_type_card_id is null or due <= $5::timestamptz))
           or ($2::text[] is not null and review_group = any($2::text[]))
         )
       ),
@@ -153,7 +156,9 @@ export class ReviewQueueRepository {
         params.reviewTypeId,
         params.groups?.length ? params.groups : null,
         params.limit,
-        params.offset
+        params.offset,
+        params.snapshotAt,
+        params.excludeCardIds?.length ? params.excludeCardIds : null
       ]
     );
 

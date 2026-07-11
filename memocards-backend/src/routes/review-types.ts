@@ -29,9 +29,11 @@ const updateReviewTypeBodySchema = z.object({
 });
 
 const dueCardsQuerySchema = z.object({
+  excludeCardIds: z.string().optional(),
   groups: z.string().optional(),
   page: z.coerce.number().int().min(0).default(0),
-  pageSize: z.coerce.number().int().min(1).max(100).default(50)
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+  snapshotAt: z.string().datetime().optional()
 });
 
 const submitReviewBodySchema = z.object({
@@ -55,6 +57,13 @@ function parseReviewGroups(value: string | undefined) {
   if (!values) return null;
 
   return values.map((group) => z.enum(reviewGroupKeys).parse(group));
+}
+
+function parseUuidCsv(value: string | undefined) {
+  const values = parseCsv(value);
+  if (!values) return null;
+
+  return values.map((id) => z.string().uuid().parse(id));
 }
 
 export async function registerReviewTypeRoutes(app: FastifyInstance) {
@@ -134,9 +143,11 @@ export async function registerReviewTypeRoutes(app: FastifyInstance) {
 
     return repository.getDueReviewCards({
       reviewTypeId: params.reviewTypeId,
+      excludeCardIds: parseUuidCsv(query.excludeCardIds),
       groups: parseReviewGroups(query.groups),
       limit: query.pageSize,
-      offset: query.page * query.pageSize
+      offset: query.page * query.pageSize,
+      snapshotAt: query.snapshotAt ?? new Date().toISOString()
     });
   });
 

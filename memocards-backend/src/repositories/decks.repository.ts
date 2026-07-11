@@ -131,6 +131,13 @@ export class DecksRepository {
                and ct.tag_id = rt.tag_id
            )
          )
+         and exists (
+           select 1
+           from card_sides front_side
+           where front_side.card_id = c.id
+             and front_side.position = rt.front_side_position
+             and btrim(front_side.content) <> ''
+         )
         left join review_type_cards rtc
           on rtc.review_type_id = rt.id
          and rtc.card_id = c.id
@@ -356,6 +363,13 @@ export class DecksRepository {
                where ct.card_id = c.id
                  and ct.tag_id = rt.tag_id
              )
+           )
+           and exists (
+             select 1
+             from card_sides front_side
+             where front_side.card_id = c.id
+               and front_side.position = rt.front_side_position
+               and btrim(front_side.content) <> ''
            )
           left join review_type_cards rtc
             on rtc.review_type_id = rt.id
