@@ -8,6 +8,7 @@ interface NewReviewTypeModalProps {
   templates: SideTemplate[];
   onClose: () => void;
   onCreateReviewType: (input: {
+    backSidePosition: number | null;
     frontSidePosition: number;
     name: string;
     tagId: string | null;
@@ -22,6 +23,7 @@ export function NewReviewTypeModal({
   onCreateReviewType
 }: NewReviewTypeModalProps) {
   const [frontSidePosition, setFrontSidePosition] = useState(templates[0]?.position ?? 0);
+  const [backSidePosition, setBackSidePosition] = useState("");
   const [name, setName] = useState("");
   const [tagId, setTagId] = useState("");
 
@@ -30,10 +32,12 @@ export function NewReviewTypeModal({
   const submit = async () => {
     if (!name.trim()) return;
     await onCreateReviewType({
+      backSidePosition: backSidePosition === "" ? null : Number(backSidePosition),
       frontSidePosition,
       name: name.trim(),
       tagId: tagId || null
     });
+    setBackSidePosition("");
     setName("");
     setTagId("");
     onClose();
@@ -58,6 +62,20 @@ export function NewReviewTypeModal({
           value={frontSidePosition}
           onChange={(event) => setFrontSidePosition(Number(event.target.value))}
         >
+          {templates.map((template) => (
+            <option key={template.id} value={template.position}>
+              {template.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Seconde face requise">
+        <select
+          value={backSidePosition}
+          onChange={(event) => setBackSidePosition(event.target.value)}
+        >
+          <option value="">Aucune</option>
           {templates.map((template) => (
             <option key={template.id} value={template.position}>
               {template.label}

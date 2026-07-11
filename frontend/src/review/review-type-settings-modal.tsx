@@ -1,46 +1,57 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button, Field, Modal, ModalHeader } from "../design-system";
-import type { ReviewType } from "../shared/types";
+import type { ReviewType, SideTemplate } from "../shared/types";
 
 const retentionPresets = [
-  { label: "Standard", value: 0.9 },
   { label: "Intensif", value: 0.85 },
+  { label: "Standard", value: 0.9 },
   { label: "Espacement long", value: 0.95 }
 ];
 
 interface ReviewTypeSettingsModalProps {
   isOpen: boolean;
   reviewType: ReviewType | null;
+  templates: SideTemplate[];
   onClose: () => void;
   onResetProgress: (reviewTypeId: string) => Promise<void>;
   onUpdateReviewType: (
     reviewTypeId: string,
-    values: { name: string; requestRetention: number }
+    values: { backSidePosition: number | null; name: string; requestRetention: number }
   ) => Promise<void>;
 }
 
 export function ReviewTypeSettingsModal({
   isOpen,
   reviewType,
+  templates,
   onClose,
   onResetProgress,
   onUpdateReviewType
 }: ReviewTypeSettingsModalProps) {
+  const [backSidePosition, setBackSidePosition] = useState("");
   const [name, setName] = useState("");
   const [requestRetention, setRequestRetention] = useState(0.9);
 
   useEffect(() => {
     if (!reviewType) return;
+    setBackSidePosition(
+      reviewType.backSidePosition === null ? "" : String(reviewType.backSidePosition)
+    );
     setName(reviewType.name);
     setRequestRetention(reviewType.requestRetention);
   }, [reviewType]);
 
   if (!isOpen || !reviewType) return null;
 
+  const frontSideLabel =
+    templates.find((template) => template.position === reviewType.frontSidePosition)?.label ??
+    `Position ${reviewType.frontSidePosition}`;
+
   const submit = async () => {
     if (!name.trim()) return;
     await onUpdateReviewType(reviewType.id, {
+      backSidePosition: backSidePosition === "" ? null : Number(backSidePosition),
       name: name.trim(),
       requestRetention
     });
@@ -55,6 +66,24 @@ export function ReviewTypeSettingsModal({
 
       <Field label="Nom">
         <input value={name} onChange={(event) => setName(event.target.value)} />
+      </Field>
+
+      <Field label="Face affichee">
+        <input readOnly value={frontSideLabel} />
+      </Field>
+
+      <Field label="Seconde face requise">
+        <select
+          value={backSidePosition}
+          onChange={(event) => setBackSidePosition(event.target.value)}
+        >
+          <option value="">Aucune</option>
+          {templates.map((template) => (
+            <option key={template.id} value={template.position}>
+              {template.label}
+            </option>
+          ))}
+        </select>
       </Field>
 
       <div className="retention-list">

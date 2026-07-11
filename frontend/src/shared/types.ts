@@ -56,6 +56,7 @@ export interface ReviewType {
   name: string;
   deckId: string;
   frontSidePosition: number;
+  backSidePosition: number | null;
   requestRetention: number;
   tagId: string | null;
   isDefault: boolean;
@@ -95,6 +96,7 @@ export interface ReviewTypeDetail {
   name: string;
   deckId: string;
   frontSidePosition: number;
+  backSidePosition: number | null;
   requestRetention: number;
   tagId: string | null;
   isDefault: boolean;

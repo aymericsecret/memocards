@@ -189,6 +189,7 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
       <ReviewTypeSettingsModal
         isOpen={Boolean(settingsReviewType)}
         reviewType={settingsReviewType}
+        templates={templates}
         onClose={() => setSettingsReviewType(null)}
         onResetProgress={async (reviewTypeId) => {
           await resetProgressMutation.mutateAsync(reviewTypeId);

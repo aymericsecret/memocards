@@ -4,12 +4,14 @@ import { api } from "../shared/api";
 import type { ReviewCard, ReviewType, ReviewTypeDetail } from "../shared/types";
 
 export interface CreateReviewTypeInput {
+  backSidePosition?: number | null;
   frontSidePosition: number;
   name: string;
   tagId?: string | null;
 }
 
 export interface UpdateReviewTypeInput {
+  backSidePosition?: number | null;
   name?: string;
   requestRetention?: number;
   tagId?: string | null;

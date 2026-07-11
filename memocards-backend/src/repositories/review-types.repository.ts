@@ -6,6 +6,7 @@ interface ReviewTypeRow {
   name: string;
   deck_id: string;
   front_side_position: number;
+  back_side_position: number | null;
   request_retention: number;
   tag_id: string | null;
   created_at: string;
@@ -26,12 +27,14 @@ interface ReviewTypeDetailRow {
   name: string;
   deck_id: string;
   front_side_position: number;
+  back_side_position: number | null;
   request_retention: number;
   tag_id: string | null;
   is_default: boolean;
 }
 
 export interface CreateReviewTypeInput {
+  backSidePosition?: number | null;
   deckId: string;
   frontSidePosition: number;
   name: string;
@@ -39,6 +42,7 @@ export interface CreateReviewTypeInput {
 }
 
 export interface UpdateReviewTypeInput {
+  backSidePosition?: number | null;
   name?: string;
   requestRetention?: number;
   tagId?: string | null;
@@ -91,6 +95,16 @@ export class ReviewTypesRepository {
              and front_side.position = rt.front_side_position
              and btrim(front_side.content) <> ''
          )
+         and (
+           rt.back_side_position is null
+           or exists (
+             select 1
+             from card_sides back_side
+             where back_side.card_id = c.id
+               and back_side.position = rt.back_side_position
+               and btrim(back_side.content) <> ''
+           )
+         )
         left join review_type_cards rtc
           on rtc.review_type_id = rt.id
          and rtc.card_id = c.id
@@ -101,6 +115,7 @@ export class ReviewTypesRepository {
         name,
         deck_id,
         front_side_position,
+        back_side_position,
         request_retention,
         tag_id,
         created_at,
@@ -120,6 +135,7 @@ export class ReviewTypesRepository {
         name,
         deck_id,
         front_side_position,
+        back_side_position,
         request_retention,
         tag_id,
         created_at,
@@ -134,6 +150,7 @@ export class ReviewTypesRepository {
       name: row.name,
       deckId: row.deck_id,
       frontSidePosition: row.front_side_position,
+      backSidePosition: row.back_side_position,
       requestRetention: row.request_retention,
       tagId: row.tag_id,
       isDefault: row.is_default,
@@ -159,6 +176,7 @@ export class ReviewTypesRepository {
         rt.name,
         rt.deck_id,
         rt.front_side_position,
+        rt.back_side_position,
         rt.request_retention,
         rt.tag_id,
         d.default_review_type_id = rt.id as is_default
@@ -177,6 +195,7 @@ export class ReviewTypesRepository {
       name: row.name,
       deckId: row.deck_id,
       frontSidePosition: row.front_side_position,
+      backSidePosition: row.back_side_position,
       requestRetention: row.request_retention,
       tagId: row.tag_id,
       isDefault: row.is_default
@@ -186,11 +205,17 @@ export class ReviewTypesRepository {
   async create(input: CreateReviewTypeInput) {
     const result = await this.database.query<{ id: string }>(
       `
-      insert into review_types (deck_id, name, front_side_position, tag_id)
-      values ($1::uuid, $2::text, $3::int, $4::uuid)
+      insert into review_types (deck_id, name, front_side_position, back_side_position, tag_id)
+      values ($1::uuid, $2::text, $3::int, $4::int, $5::uuid)
       returning id
       `,
-      [input.deckId, input.name.trim(), input.frontSidePosition, input.tagId ?? null]
+      [
+        input.deckId,
+        input.name.trim(),
+        input.frontSidePosition,
+        input.backSidePosition ?? null,
+        input.tagId ?? null
+      ]
     );
 
     return { id: result.rows[0].id };
@@ -203,7 +228,8 @@ export class ReviewTypesRepository {
       set
         name = coalesce($2::text, name),
         request_retention = coalesce($3::double precision, request_retention),
-        tag_id = case when $5::boolean then $4::uuid else tag_id end
+        tag_id = case when $5::boolean then $4::uuid else tag_id end,
+        back_side_position = case when $7::boolean then $6::int else back_side_position end
       where id = $1::uuid
       `,
       [
@@ -211,7 +237,9 @@ export class ReviewTypesRepository {
         input.name?.trim() || null,
         input.requestRetention ?? null,
         input.tagId ?? null,
-        Object.hasOwn(input, "tagId")
+        Object.hasOwn(input, "tagId"),
+        input.backSidePosition ?? null,
+        Object.hasOwn(input, "backSidePosition")
       ]
     );
 

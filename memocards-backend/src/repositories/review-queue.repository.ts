@@ -42,7 +42,7 @@ export class ReviewQueueRepository {
     const result = await this.database.query<DueReviewCardRow>(
       `
       with review_type as (
-        select id, deck_id, tag_id, front_side_position
+        select id, deck_id, tag_id, front_side_position, back_side_position
         from review_types
         where id = $1::uuid
       ),
@@ -90,6 +90,16 @@ export class ReviewQueueRepository {
             where front_side.card_id = c.id
               and front_side.position = rt.front_side_position
               and btrim(front_side.content) <> ''
+          )
+          and (
+            rt.back_side_position is null
+            or exists (
+              select 1
+              from card_sides back_side
+              where back_side.card_id = c.id
+                and back_side.position = rt.back_side_position
+                and btrim(back_side.content) <> ''
+            )
           )
           and ($6::uuid[] is null or c.id <> all($6::uuid[]))
       ),

@@ -17,12 +17,14 @@ const deckParamsSchema = z.object({
 });
 
 const createReviewTypeBodySchema = z.object({
+  backSidePosition: z.number().int().min(0).nullable().optional(),
   name: z.string().trim().min(1),
   frontSidePosition: z.number().int().min(0),
   tagId: z.string().uuid().nullable().optional()
 });
 
 const updateReviewTypeBodySchema = z.object({
+  backSidePosition: z.number().int().min(0).nullable().optional(),
   name: z.string().trim().min(1).optional(),
   requestRetention: z.number().min(0.7).max(0.97).optional(),
   tagId: z.string().uuid().nullable().optional()
@@ -82,6 +84,7 @@ export async function registerReviewTypeRoutes(app: FastifyInstance) {
     const repository = Container.get(ReviewTypesRepository);
 
     const reviewType = await repository.create({
+      backSidePosition: body.backSidePosition ?? null,
       deckId: params.deckId,
       frontSidePosition: body.frontSidePosition,
       name: body.name,

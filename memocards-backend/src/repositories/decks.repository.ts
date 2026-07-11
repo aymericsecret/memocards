@@ -138,6 +138,16 @@ export class DecksRepository {
              and front_side.position = rt.front_side_position
              and btrim(front_side.content) <> ''
          )
+         and (
+           rt.back_side_position is null
+           or exists (
+             select 1
+             from card_sides back_side
+             where back_side.card_id = c.id
+               and back_side.position = rt.back_side_position
+               and btrim(back_side.content) <> ''
+           )
+         )
         left join review_type_cards rtc
           on rtc.review_type_id = rt.id
          and rtc.card_id = c.id
@@ -148,6 +158,7 @@ export class DecksRepository {
           rt.deck_id,
           rt.name,
           rt.front_side_position,
+          rt.back_side_position,
           rt.request_retention,
           rt.tag_id,
           rt.created_at,
@@ -175,9 +186,13 @@ export class DecksRepository {
         d.created_at,
         d.updated_at,
         count(distinct c.id) as total_cards,
-        count(distinct c.id) filter (
-          where d.default_review_type_id is not null
-            and (rtc.id is null or rtc.due <= now())
+        coalesce(
+          (
+            select default_rtc_counts.due_count
+            from review_types_with_counts default_rtc_counts
+            where default_rtc_counts.id = d.default_review_type_id
+          ),
+          0
         ) as due_cards,
         max(rtc.last_review) as last_review,
         coalesce(
@@ -188,6 +203,7 @@ export class DecksRepository {
                 'name', rtc_counts.name,
                 'deckId', rtc_counts.deck_id,
                 'frontSidePosition', rtc_counts.front_side_position,
+                'backSidePosition', rtc_counts.back_side_position,
                 'requestRetention', rtc_counts.request_retention,
                 'tagId', rtc_counts.tag_id,
                 'isDefault', d.default_review_type_id = rtc_counts.id,
@@ -370,6 +386,16 @@ export class DecksRepository {
              where front_side.card_id = c.id
                and front_side.position = rt.front_side_position
                and btrim(front_side.content) <> ''
+           )
+           and (
+             rt.back_side_position is null
+             or exists (
+               select 1
+               from card_sides back_side
+               where back_side.card_id = c.id
+                 and back_side.position = rt.back_side_position
+                 and btrim(back_side.content) <> ''
+             )
            )
           left join review_type_cards rtc
             on rtc.review_type_id = rt.id

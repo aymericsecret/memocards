@@ -68,10 +68,45 @@ export class DeckCardsRepository {
           ) as last_review_effective,
           count(*) over() as total_count
         from cards c
+        left join review_types filter_rt
+          on filter_rt.id = $4::uuid
+         and filter_rt.deck_id = c.deck_id
         left join review_type_cards group_rtc
           on group_rtc.card_id = c.id
          and group_rtc.review_type_id = $4::uuid
         where c.deck_id = $1::uuid
+          and (
+            $4::uuid is null
+            or (
+              filter_rt.id is not null
+              and (
+                filter_rt.tag_id is null
+                or exists (
+                  select 1
+                  from card_tags review_type_tag
+                  where review_type_tag.card_id = c.id
+                    and review_type_tag.tag_id = filter_rt.tag_id
+                )
+              )
+              and exists (
+                select 1
+                from card_sides front_side
+                where front_side.card_id = c.id
+                  and front_side.position = filter_rt.front_side_position
+                  and btrim(front_side.content) <> ''
+              )
+              and (
+                filter_rt.back_side_position is null
+                or exists (
+                  select 1
+                  from card_sides back_side
+                  where back_side.card_id = c.id
+                    and back_side.position = filter_rt.back_side_position
+                    and btrim(back_side.content) <> ''
+                )
+              )
+            )
+          )
           and (
             $2::text is null
             or exists (
