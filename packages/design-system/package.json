@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "scripts": {
+    "build": "node -e \"console.log('Design system package has no build step')\""
+  },
   "exports": {
     "./icons": "./src/icons.tsx"
   },
