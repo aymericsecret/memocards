@@ -14,7 +14,7 @@ export function Input({ className = "", leading, ...props }: InputProps) {
   );
 }
 
-const InputShell = styled.label`
+const InputShell = styled.div`
   min-width: 0;
   height: ${({ theme }) => theme.sizes.input};
   display: flex;

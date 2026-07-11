@@ -1,0 +1,12 @@
+{
+  "name": "@memocards/design-system",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./icons": "./src/icons.tsx"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

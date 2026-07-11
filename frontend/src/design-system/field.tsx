@@ -1,7 +1,7 @@
-import type { LabelHTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 
-interface FieldProps extends LabelHTMLAttributes<HTMLLabelElement> {
+interface FieldProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   label: string;
 }
@@ -15,7 +15,7 @@ export function Field({ children, label, className = "", ...props }: FieldProps)
   );
 }
 
-const StyledField = styled.label`
+const StyledField = styled.div`
   display: grid;
   gap: 7px;
 

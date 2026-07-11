@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@memocards/design-system": "*",
     "@tanstack/react-query": "^5.101.2",
     "@vitejs/plugin-react": "^4.3.4",
     "lucide-react": "^1.23.0",

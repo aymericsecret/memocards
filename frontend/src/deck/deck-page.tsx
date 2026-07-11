@@ -1,3 +1,4 @@
+import { CheckIcon } from "@memocards/design-system/icons";
 import { ArrowLeft, BarChart3, ListChecks, Play, Plus, TableIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -299,7 +300,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
                     <span className="tab-dropdown-label">
                       <Icon size={14} /> {tab.label}
                     </span>
-                    {selected && <span className="material-check">check</span>}
+                    {selected && <CheckIcon className="dropdown-check" />}
                   </button>
                 );
               })}

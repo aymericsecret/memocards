@@ -58,7 +58,7 @@ export function FilterMenu({ align = "auto", children, label, wide = false }: Fi
       $wide={wide}
       className={wide ? "filter-menu wide" : "filter-menu"}
       ref={ref}
-      onClickCapture={(event) => {
+      onClick={(event) => {
         if ((event.target as HTMLElement).closest("[data-close-menu]")) {
           setIsOpen(false);
         }
@@ -87,7 +87,8 @@ const Root = styled.div<{ $align: "auto" | "left" | "right"; $wide: boolean }>`
     top: 40px;
     z-index: 25;
     min-width: 224px;
-    width: ${({ $wide }) => ($wide ? "min(420px, calc(100vw - 32px))" : "min(280px, calc(100vw - 32px))")};
+    width: max-content;
+    max-width: ${({ $wide }) => ($wide ? "min(420px, calc(100vw - 32px))" : "min(320px, calc(100vw - 32px))")};
     display: grid;
     gap: 2px;
     padding: 8px;
@@ -99,7 +100,8 @@ const Root = styled.div<{ $align: "auto" | "left" | "right"; $wide: boolean }>`
 
   .filter-panel.compact {
     min-width: 224px;
-    width: min(250px, calc(100vw - 32px));
+    width: max-content;
+    max-width: min(320px, calc(100vw - 32px));
   }
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {

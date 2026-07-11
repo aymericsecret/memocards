@@ -828,7 +828,8 @@ button.mobile-create-card-button {
   top: 40px;
   z-index: 25;
   min-width: 224px;
-  width: min(280px, calc(100vw - 32px));
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
   display: grid;
   gap: 2px;
   padding: 8px;
@@ -840,12 +841,14 @@ button.mobile-create-card-button {
 
 .filter-menu.wide .filter-panel {
   min-width: 224px;
-  width: min(420px, calc(100vw - 32px));
+  width: max-content;
+  max-width: min(420px, calc(100vw - 32px));
 }
 
 .filter-panel.compact {
   min-width: 224px;
-  width: min(250px, calc(100vw - 32px));
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
 }
 
 .filter-empty {
@@ -854,17 +857,10 @@ button.mobile-create-card-button {
   font-size: 0.85rem;
 }
 
-.material-check {
-  font-family: "Material Symbols Rounded";
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 1;
-  font-style: normal;
-  font-variation-settings:
-    "FILL" 0,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 20;
+.dropdown-check {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 
 .check-row,
@@ -896,16 +892,15 @@ button.mobile-create-card-button {
 }
 
 .check-row:has(input:checked)::after {
-  content: "check";
-  font-family: "Material Symbols Rounded";
-  font-variation-settings:
-    "FILL" 0,
-    "wght" 400,
-    "GRAD" 0,
-    "opsz" 20;
+  content: "";
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  flex: 0 0 auto;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3E%3Cpath d='M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z'/%3E%3C/svg%3E") center / contain no-repeat;
   color: hsl(var(--foreground));
-  font-size: 18px;
-  line-height: 1;
 }
 
 .option-row {
@@ -1116,7 +1111,8 @@ td input:focus {
   top: 28px;
   z-index: 20;
   min-width: 224px;
-  width: min(280px, calc(100vw - 32px));
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
   display: grid;
   gap: 0;
   border: 1px solid hsl(var(--border));
@@ -1190,19 +1186,19 @@ td input:focus {
   background: hsl(var(--background));
 }
 
-label.field {
+.field {
   display: grid;
   gap: 7px;
 }
 
-label.field > span {
+.field > span {
   color: hsl(var(--muted-foreground));
   font-size: 0.86rem;
   font-weight: 650;
 }
 
-label.field input,
-label.field select {
+.field input,
+.field select {
   width: 100%;
   min-width: 0;
   height: 39px;
@@ -1214,7 +1210,7 @@ label.field select {
   outline: none;
 }
 
-label.field textarea {
+.field textarea {
   width: 100%;
   min-width: 0;
   border: 1px solid hsl(var(--input));
@@ -1226,9 +1222,9 @@ label.field textarea {
   resize: vertical;
 }
 
-label.field input:focus,
-label.field textarea:focus,
-label.field select:focus {
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
   border-color: hsl(var(--input));
   box-shadow: none;
 }

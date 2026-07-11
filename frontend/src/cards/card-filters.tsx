@@ -1,3 +1,4 @@
+import { CheckIcon } from "@memocards/design-system/icons";
 import { Search } from "lucide-react";
 import { FilterMenu } from "../design-system";
 import type { SideTemplate, Tag } from "../shared/types";
@@ -72,7 +73,7 @@ export function CardFilters({
                 type="button"
               >
                 <span>{option.label}</span>
-                {selected && <span className="material-check">check</span>}
+                {selected && <CheckIcon className="dropdown-check" />}
               </button>
             );
           })}
@@ -148,7 +149,7 @@ export function CardFilters({
                     onSideFiltersChange(next);
                   }}
                 >
-                  {value === "filled" && <span className="material-check">check</span>}
+                  {value === "filled" && <CheckIcon className="dropdown-check" size={14} />}
                   {value === "filled" ? "Remplie" : "Vide"}
                 </button>
               ))}
