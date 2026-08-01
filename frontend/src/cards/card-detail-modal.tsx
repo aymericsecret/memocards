@@ -1,9 +1,9 @@
-import { Brain, CalendarCheck, CreditCard, RotateCcw, TrendingUp, Zap } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import { Modal, ModalHeader } from "../design-system";
+import { Brain, CalendarCheck, Check, CreditCard, Loader2, Pencil, RotateCcw, TrendingUp, Zap } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { Button, Modal, ModalHeader } from "../design-system";
 import type { CardDetail, Tag } from "../shared/types";
 import { CardTagPicker } from "./card-tag-picker";
-import { useCardDetailQuery } from "./card-queries";
+import { useCardDetailQuery, useUpdateCardMutation } from "./card-queries";
 
 interface CardDetailModalProps {
   allTags?: Tag[];
@@ -51,6 +51,9 @@ function CardDetailContent({
   deckId?: string;
 }) {
   const [activeTab, setActiveTab] = useState<"card" | "stats">("card");
+  const [isEditing, setIsEditing] = useState(false);
+  const [sideValues, setSideValues] = useState<Record<number, string>>({});
+  const updateCardMutation = useUpdateCardMutation(deckId ?? "");
   const lastReview = card.lastReview
     ? new Date(card.lastReview).toLocaleString("fr-FR", {
         day: "numeric",
@@ -61,6 +64,27 @@ function CardDetailContent({
       })
     : "Jamais";
   const totalLapses = card.reviewStates.reduce((sum, state) => sum + state.lapses, 0);
+
+  useEffect(() => {
+    setIsEditing(false);
+    setSideValues(
+      Object.fromEntries(card.sides.map((side) => [side.position, side.content]))
+    );
+  }, [card.id, card.sides]);
+
+  const saveCard = async () => {
+    if (!deckId) return;
+
+    await updateCardMutation.mutateAsync({
+      cardId: card.id,
+      sides: card.sides.map((side) => ({
+        content: sideValues[side.position] ?? "",
+        label: side.label,
+        position: side.position
+      }))
+    });
+    setIsEditing(false);
+  };
 
   return (
     <div className={activeTab === "stats" ? "card-detail-body stats-mode" : "card-detail-body"}>
@@ -82,35 +106,82 @@ function CardDetailContent({
       </div>
 
       {activeTab === "card" ? (
-        <section className="card-detail-preview">
-          {card.sides.map((side) => (
-            <div key={side.id}>
-              <p>{side.label}</p>
-              <strong>{side.content || "-"}</strong>
+        <>
+          {deckId && (
+            <div className="card-detail-card-toolbar">
+              <Button
+                size="sm"
+                variant={isEditing ? "outline" : "primary"}
+                onClick={() => setIsEditing((value) => !value)}
+              >
+                <Pencil size={14} /> {isEditing ? "Annuler" : "Modifier"}
+              </Button>
             </div>
-          ))}
-          <div>
-            <p>Tags</p>
-            {deckId ? (
-              <CardTagPicker
-                allTags={allTags}
-                cardId={card.id}
-                cardTags={card.tags}
-                deckId={deckId}
-              />
-            ) : card.tags.length > 0 ? (
-              <div className="tag-chip-list">
-                {card.tags.map((tag) => (
-                  <span className="tag-chip" key={tag.id}>
-                    {tag.name}
-                  </span>
-                ))}
+          )}
+
+          <section className="card-detail-preview">
+            {card.sides.map((side) => (
+              <div key={side.id}>
+                <p>{side.label}</p>
+                {isEditing ? (
+                  <textarea
+                    rows={4}
+                    value={sideValues[side.position] ?? ""}
+                    onChange={(event) =>
+                      setSideValues({
+                        ...sideValues,
+                        [side.position]: event.target.value
+                      })
+                    }
+                  />
+                ) : (
+                  <strong>{side.content || "-"}</strong>
+                )}
               </div>
-            ) : (
-              <strong>-</strong>
-            )}
-          </div>
-        </section>
+            ))}
+            <div>
+              <p>Tags</p>
+              {deckId ? (
+                <CardTagPicker
+                  allTags={allTags}
+                  cardId={card.id}
+                  cardTags={card.tags}
+                  deckId={deckId}
+                />
+              ) : card.tags.length > 0 ? (
+                <div className="tag-chip-list">
+                  {card.tags.map((tag) => (
+                    <span className="tag-chip" key={tag.id}>
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <strong>-</strong>
+              )}
+            </div>
+          </section>
+
+          {isEditing && (
+            <div className="modal-footer card-detail-edit-footer">
+              <Button variant="outline" onClick={() => setIsEditing(false)}>
+                Annuler
+              </Button>
+              <Button
+                className="modal-submit"
+                disabled={updateCardMutation.isPending}
+                onClick={() => void saveCard()}
+              >
+                {updateCardMutation.isPending ? (
+                  <Loader2 className="spin" size={16} />
+                ) : (
+                  <Check size={16} />
+                )}
+                Enregistrer
+              </Button>
+            </div>
+          )}
+        </>
       ) : (
         <>
           <section className="card-stat-grid">

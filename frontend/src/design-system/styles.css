@@ -947,6 +947,10 @@ button.mobile-create-card-button {
   background: hsl(var(--card));
 }
 
+.empty-table-frame {
+  overflow: visible;
+}
+
 .cards-tab-content {
   min-height: 0;
   flex: 1 1 auto;
@@ -989,22 +993,33 @@ tbody tr:hover {
   background: hsl(var(--muted) / 0.45);
 }
 
-td input {
+td input,
+td textarea {
   width: 100%;
   height: 31px;
   border: 0;
   border-radius: calc(var(--radius) - 6px);
-  padding: 0 6px;
+  padding: 6px;
   color: hsl(var(--foreground));
   background: transparent;
   outline: none;
 }
 
-.new-row input {
+td textarea {
+  display: block;
+  min-height: 31px;
+  max-height: 88px;
+  line-height: 1.35;
+  resize: vertical;
+}
+
+.new-row input,
+.new-row textarea {
   border: 1px dashed hsl(var(--input));
 }
 
-td input:focus {
+td input:focus,
+td textarea:focus {
   box-shadow: none;
 }
 
@@ -1606,6 +1621,34 @@ td input:focus {
 .card-detail-preview strong {
   display: block;
   margin-top: 2px;
+  white-space: pre-wrap;
+}
+
+.card-detail-card-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card-detail-preview textarea {
+  width: 100%;
+  min-height: 104px;
+  border: 1px solid hsl(var(--input));
+  border-radius: calc(var(--radius) - 2px);
+  padding: 10px 11px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  line-height: 1.45;
+  outline: none;
+  resize: vertical;
+}
+
+.card-detail-preview textarea:focus {
+  border-color: hsl(var(--input));
+  box-shadow: none;
+}
+
+.card-detail-edit-footer {
+  margin-top: 0;
 }
 
 .card-stat-grid {
@@ -2343,6 +2386,7 @@ td input:focus {
 .review-card h2 {
   margin: 0;
   letter-spacing: 0;
+  white-space: pre-wrap;
 }
 
 .review-card h1 {

@@ -55,7 +55,7 @@ export function CardTable({
 
   return (
     <>
-      <div className="table-frame" ref={tableRef}>
+      <div className={cards.length === 0 ? "table-frame empty-table-frame" : "table-frame"} ref={tableRef}>
         <table>
           <thead>
             <tr>
@@ -71,9 +71,10 @@ export function CardTable({
             <tr className="new-row">
               {templates.map((template, index) => (
                 <td key={template.id}>
-                  <input
+                  <textarea
                     data-row="__new__"
                     data-col={index}
+                    rows={1}
                     value={newRow[template.position] ?? ""}
                     onChange={(event) =>
                       onNewRowChange({
@@ -82,7 +83,7 @@ export function CardTable({
                       })
                     }
                     onKeyDown={(event) => {
-                      if (event.key === "Enter") {
+                      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
                         event.preventDefault();
                         onAddCard();
                       }
@@ -128,15 +129,16 @@ export function CardTable({
 
                   return (
                     <td key={template.id}>
-                      <input
+                      <textarea
                         data-row={card.id}
                         data-col={index}
+                        rows={1}
                         defaultValue={side?.content ?? ""}
                         onBlur={(event) =>
                           onUpdateCardSide(card, template, event.target.value)
                         }
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") {
+                          if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
                             event.preventDefault();
                             event.currentTarget.blur();
                           }

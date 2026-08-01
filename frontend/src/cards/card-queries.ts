@@ -89,9 +89,10 @@ export function useUpdateCardMutation(deckId: string) {
         method: "PATCH",
         body: JSON.stringify({ sides: input.sides })
       }),
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: ["deckCards", deckId] });
       void queryClient.invalidateQueries({ queryKey: ["reviewTypeDueCards"] });
+      void queryClient.invalidateQueries({ queryKey: cardKeys.detail(input.cardId) });
     }
   });
 }

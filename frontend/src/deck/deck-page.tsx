@@ -146,8 +146,8 @@ export function DeckPage({ deckId }: { deckId: string }) {
     deckTabs.find((tab) => tab.value === activeTab)?.label ?? "Cartes";
 
   const focusCell = useCallback((row: string, col: number) => {
-    const next = tableRef.current?.querySelector<HTMLInputElement>(
-      `input[data-row="${row}"][data-col="${col}"]`
+    const next = tableRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      `input[data-row="${row}"][data-col="${col}"], textarea[data-row="${row}"][data-col="${col}"]`
     );
     next?.focus();
     next?.select();
