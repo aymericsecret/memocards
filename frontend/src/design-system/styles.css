@@ -615,6 +615,11 @@ button.mobile-create-card-button {
   padding-bottom: 16px;
 }
 
+/* The add-tag menu in an empty table needs to extend below the table frame. */
+.deck-main.cards-mode:has(.empty-table-frame) {
+  overflow: visible;
+}
+
 .deck-description {
   margin: 0 0 14px;
 }
