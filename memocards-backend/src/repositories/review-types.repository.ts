@@ -62,7 +62,6 @@ export class ReviewTypesRepository {
       with review_types_with_cards as (
         select
           rt.*,
-          rt.is_favorite,
           c.id as card_id,
           rtc.id as rtc_id,
           rtc.due,
@@ -141,7 +140,7 @@ export class ReviewTypesRepository {
         is_favorite
       order by created_at asc
       `,
-      [deckId]
+      [deckId],
     );
 
     return result.rows.map((row) => ({
@@ -162,8 +161,8 @@ export class ReviewTypesRepository {
         in24h: Number(row.in24h_count),
         tomorrow: Number(row.tomorrow_count),
         inWeek: Number(row.in_week_count),
-        later: Number(row.later_count)
-      }
+        later: Number(row.later_count),
+      },
     }));
   }
 
@@ -182,7 +181,7 @@ export class ReviewTypesRepository {
       from review_types rt
       where rt.id = $1::uuid
       `,
-      [reviewTypeId]
+      [reviewTypeId],
     );
 
     const row = result.rows[0];
@@ -196,7 +195,7 @@ export class ReviewTypesRepository {
       backSidePosition: row.back_side_position,
       requestRetention: row.request_retention,
       tagId: row.tag_id,
-      isFavorite: row.is_favorite
+      isFavorite: row.is_favorite,
     };
   }
 
@@ -212,8 +211,8 @@ export class ReviewTypesRepository {
         input.name.trim(),
         input.frontSidePosition,
         input.backSidePosition ?? null,
-        input.tagId ?? null
-      ]
+        input.tagId ?? null,
+      ],
     );
 
     return { id: result.rows[0].id };
@@ -237,8 +236,8 @@ export class ReviewTypesRepository {
         input.tagId ?? null,
         Object.hasOwn(input, "tagId"),
         input.backSidePosition ?? null,
-        Object.hasOwn(input, "backSidePosition")
-      ]
+        Object.hasOwn(input, "backSidePosition"),
+      ],
     );
 
     return { id: reviewTypeId };
@@ -250,7 +249,7 @@ export class ReviewTypesRepository {
       delete from review_types
       where id = $1::uuid
       `,
-      [reviewTypeId]
+      [reviewTypeId],
     );
 
     return { id: reviewTypeId };
@@ -266,7 +265,7 @@ export class ReviewTypesRepository {
           and deck_id = $1::uuid
         for update
         `,
-        [deckId, reviewTypeId]
+        [deckId, reviewTypeId],
       );
 
       if (!reviewType.rows[0]) return;
@@ -278,7 +277,7 @@ export class ReviewTypesRepository {
         where deck_id = $1::uuid
           and is_favorite
         `,
-        [deckId]
+        [deckId],
       );
 
       await client.query(
@@ -288,7 +287,7 @@ export class ReviewTypesRepository {
         where id = $2::uuid
           and deck_id = $1::uuid
         `,
-        [deckId, reviewTypeId]
+        [deckId, reviewTypeId],
       );
     });
 
@@ -302,14 +301,14 @@ export class ReviewTypesRepository {
         delete from review_logs
         where review_type_id = $1::uuid
         `,
-        [reviewTypeId]
+        [reviewTypeId],
       );
       await client.query(
         `
         delete from review_type_cards
         where review_type_id = $1::uuid
         `,
-        [reviewTypeId]
+        [reviewTypeId],
       );
     });
 
