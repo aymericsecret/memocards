@@ -405,19 +405,29 @@ async function importOriginalData() {
     }
     console.log(`Imported ${validReviewTypes.length} review types`);
 
+    await client.query(
+      `
+      update review_types
+      set is_favorite = false
+      where deck_id = any($1::uuid[])
+      `,
+      [decks.map((row) => row.id)]
+    );
+
     for (const row of decks) {
       if (!row.default_review_type_id) continue;
       if (!reviewTypeIds.has(row.default_review_type_id)) continue;
       await client.query(
         `
-        update decks
-        set default_review_type_id = $2::uuid
-        where id = $1::uuid
+        update review_types
+        set is_favorite = true
+        where id = $2::uuid
+          and deck_id = $1::uuid
         `,
         [row.id, row.default_review_type_id]
       );
     }
-    console.log("Updated deck default review types");
+    console.log("Updated favorite review types");
 
     for (const row of validCardTags) {
       await client.query(

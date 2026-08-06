@@ -30,8 +30,8 @@ export function DeckShareModal({
   reviewTypes,
   templates
 }: DeckShareModalProps) {
-  const defaultReviewType = reviewTypes.find((reviewType) => reviewType.isDefault) ?? reviewTypes[0];
-  const [reviewTypeId, setReviewTypeId] = useState(defaultReviewType?.id ?? "");
+  const favoriteReviewType = reviewTypes.find((reviewType) => reviewType.isFavorite) ?? reviewTypes[0];
+  const [reviewTypeId, setReviewTypeId] = useState(favoriteReviewType?.id ?? "");
   const [sidePositions, setSidePositions] = useState<number[]>(
     templates[0] ? [templates[0].position] : []
   );
@@ -54,14 +54,14 @@ export function DeckShareModal({
     const currentReviewTypeExists = reviewTypes.some(
       (reviewType) => reviewType.id === reviewTypeId
     );
-    if (!currentReviewTypeExists && defaultReviewType) {
-      setReviewTypeId(defaultReviewType.id);
+    if (!currentReviewTypeExists && favoriteReviewType) {
+      setReviewTypeId(favoriteReviewType.id);
     }
 
     if (sidePositions.length === 0 && templates[0]) {
       setSidePositions([templates[0].position]);
     }
-  }, [defaultReviewType, isOpen, reviewTypeId, reviewTypes, sidePositions.length, templates]);
+  }, [favoriteReviewType, isOpen, reviewTypeId, reviewTypes, sidePositions.length, templates]);
 
   useEffect(() => {
     if (!isOpen) return;

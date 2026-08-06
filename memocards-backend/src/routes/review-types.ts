@@ -124,12 +124,12 @@ export async function registerReviewTypeRoutes(app: FastifyInstance) {
     return repository.delete(params.reviewTypeId);
   });
 
-  app.put("/decks/:deckId/default-review-type/:reviewTypeId", async (request) => {
+  app.put("/decks/:deckId/favorite-review-type/:reviewTypeId", async (request) => {
     const deckParams = deckParamsSchema.parse(request.params);
     const reviewTypeParams = paramsSchema.parse(request.params);
     const repository = Container.get(ReviewTypesRepository);
 
-    return repository.setDefault(deckParams.deckId, reviewTypeParams.reviewTypeId);
+    return repository.setFavorite(deckParams.deckId, reviewTypeParams.reviewTypeId);
   });
 
   app.post("/review-types/:reviewTypeId/reset-progress", async (request) => {

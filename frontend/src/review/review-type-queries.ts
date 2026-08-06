@@ -125,12 +125,12 @@ export function useDeleteReviewTypeMutation(deckId: string) {
   });
 }
 
-export function useSetDefaultReviewTypeMutation(deckId: string) {
+export function useSetFavoriteReviewTypeMutation(deckId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (reviewTypeId: string) =>
-      api<{ id: string }>(`/decks/${deckId}/default-review-type/${reviewTypeId}`, {
+      api<{ id: string }>(`/decks/${deckId}/favorite-review-type/${reviewTypeId}`, {
         method: "PUT"
       }),
     onSuccess: () => {

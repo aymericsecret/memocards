@@ -2,7 +2,6 @@ export interface DeckSummary {
   id: string;
   name: string;
   description: string | null;
-  defaultReviewTypeId: string | null;
   requestRetention: number;
   updatedAt: string;
   stats: {
@@ -44,7 +43,6 @@ export interface DeckDetail {
   id: string;
   name: string;
   description: string | null;
-  defaultReviewTypeId: string | null;
   requestRetention: number;
   totalCards: number;
   sideTemplates: SideTemplate[];
@@ -59,7 +57,7 @@ export interface ReviewType {
   backSidePosition: number | null;
   requestRetention: number;
   tagId: string | null;
-  isDefault: boolean;
+  isFavorite: boolean;
   dueCount: number;
   totalCards: number;
   groups: {
@@ -99,7 +97,7 @@ export interface ReviewTypeDetail {
   backSidePosition: number | null;
   requestRetention: number;
   tagId: string | null;
-  isDefault: boolean;
+  isFavorite: boolean;
 }
 
 export interface CardReviewState {

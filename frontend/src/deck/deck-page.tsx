@@ -92,7 +92,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
       sideFilled,
       sortDir,
       sortField,
-      reviewTypeId: deck?.defaultReviewTypeId ?? null
+      reviewTypeId: reviewTypesQuery.data?.find((reviewType) => reviewType.isFavorite)?.id ?? null
     }),
     [
       cardsPage,
@@ -104,7 +104,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
       sideFilled,
       sortDir,
       sortField,
-      deck?.defaultReviewTypeId
+      reviewTypesQuery.data
     ]
   );
 
@@ -118,16 +118,15 @@ export function DeckPage({ deckId }: { deckId: string }) {
     sideFilled,
     sortDir,
     sortField,
-    deck?.defaultReviewTypeId
+    reviewTypesQuery.data
   ]);
 
   const cardsQuery = useDeckCardsQuery(deckId, cardFilters);
   const cards = cardsQuery.data?.cards ?? [];
   const totalCount = cardsQuery.data?.totalCount ?? 0;
   const reviewTypes = reviewTypesQuery.data ?? [];
-  const defaultReviewType =
-    reviewTypes.find((reviewType) => reviewType.isDefault) ??
-    reviewTypes.find((reviewType) => reviewType.id === deck?.defaultReviewTypeId) ??
+  const favoriteReviewType =
+    reviewTypes.find((reviewType) => reviewType.isFavorite) ??
     null;
   const createCardMutation = useCreateCardMutation(deckId);
   const updateCardMutation = useUpdateCardMutation(deckId);
@@ -208,7 +207,7 @@ export function DeckPage({ deckId }: { deckId: string }) {
     return <div className="loading-page">Paquet introuvable</div>;
   }
 
-  const reviewStartControl = defaultReviewType ? (
+  const reviewStartControl = favoriteReviewType ? (
     <div
       className={
         reviewTypes.length > 1
@@ -218,12 +217,12 @@ export function DeckPage({ deckId }: { deckId: string }) {
     >
       <Button
         className="deck-start-review"
-        disabled={defaultReviewType.dueCount === 0}
-        onClick={() => navigate(`/review-type/${defaultReviewType.id}`)}
+        disabled={favoriteReviewType.dueCount === 0}
+        onClick={() => navigate(`/review-type/${favoriteReviewType.id}`)}
       >
         <Play size={16} fill="currentColor" />
         <span className="review-button-label">Reviser</span>
-        <span>{defaultReviewType.dueCount}</span>
+        <span>{favoriteReviewType.dueCount}</span>
       </Button>
       {reviewTypes.length > 1 && (
         <ActionMenu className="deck-review-type-menu" label="Choisir le type de revision">

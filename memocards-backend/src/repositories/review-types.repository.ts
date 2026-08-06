@@ -10,7 +10,7 @@ interface ReviewTypeRow {
   request_retention: number;
   tag_id: string | null;
   created_at: string;
-  is_default: boolean;
+  is_favorite: boolean;
   total_cards: string;
   due_count: string;
   new_count: string;
@@ -30,7 +30,7 @@ interface ReviewTypeDetailRow {
   back_side_position: number | null;
   request_retention: number;
   tag_id: string | null;
-  is_default: boolean;
+  is_favorite: boolean;
 }
 
 export interface CreateReviewTypeInput {
@@ -62,7 +62,7 @@ export class ReviewTypesRepository {
       with review_types_with_cards as (
         select
           rt.*,
-          d.default_review_type_id = rt.id as is_default,
+          rt.is_favorite,
           c.id as card_id,
           rtc.id as rtc_id,
           rtc.due,
@@ -76,7 +76,6 @@ export class ReviewTypesRepository {
             else 'later'
           end as review_group
         from review_types rt
-        join decks d on d.id = rt.deck_id
         left join cards c
           on c.deck_id = rt.deck_id
          and (
@@ -119,7 +118,7 @@ export class ReviewTypesRepository {
         request_retention,
         tag_id,
         created_at,
-        is_default,
+        is_favorite,
         count(card_id) as total_cards,
         count(card_id) filter (where rtc_id is null or due <= now()) as due_count,
         count(card_id) filter (where review_group = 'new') as new_count,
@@ -139,7 +138,7 @@ export class ReviewTypesRepository {
         request_retention,
         tag_id,
         created_at,
-        is_default
+        is_favorite
       order by created_at asc
       `,
       [deckId]
@@ -153,7 +152,7 @@ export class ReviewTypesRepository {
       backSidePosition: row.back_side_position,
       requestRetention: row.request_retention,
       tagId: row.tag_id,
-      isDefault: row.is_default,
+      isFavorite: row.is_favorite,
       dueCount: Number(row.due_count),
       totalCards: Number(row.total_cards),
       groups: {
@@ -179,9 +178,8 @@ export class ReviewTypesRepository {
         rt.back_side_position,
         rt.request_retention,
         rt.tag_id,
-        d.default_review_type_id = rt.id as is_default
+        rt.is_favorite
       from review_types rt
-      join decks d on d.id = rt.deck_id
       where rt.id = $1::uuid
       `,
       [reviewTypeId]
@@ -198,7 +196,7 @@ export class ReviewTypesRepository {
       backSidePosition: row.back_side_position,
       requestRetention: row.request_retention,
       tagId: row.tag_id,
-      isDefault: row.is_default
+      isFavorite: row.is_favorite
     };
   }
 
@@ -258,15 +256,41 @@ export class ReviewTypesRepository {
     return { id: reviewTypeId };
   }
 
-  async setDefault(deckId: string, reviewTypeId: string) {
-    await this.database.query(
-      `
-      update decks
-      set default_review_type_id = $2::uuid
-      where id = $1::uuid
-      `,
-      [deckId, reviewTypeId]
-    );
+  async setFavorite(deckId: string, reviewTypeId: string) {
+    await this.database.transaction(async (client) => {
+      const reviewType = await client.query<{ id: string }>(
+        `
+        select id
+        from review_types
+        where id = $2::uuid
+          and deck_id = $1::uuid
+        for update
+        `,
+        [deckId, reviewTypeId]
+      );
+
+      if (!reviewType.rows[0]) return;
+
+      await client.query(
+        `
+        update review_types
+        set is_favorite = false
+        where deck_id = $1::uuid
+          and is_favorite
+        `,
+        [deckId]
+      );
+
+      await client.query(
+        `
+        update review_types
+        set is_favorite = true
+        where id = $2::uuid
+          and deck_id = $1::uuid
+        `,
+        [deckId, reviewTypeId]
+      );
+    });
 
     return { id: reviewTypeId };
   }

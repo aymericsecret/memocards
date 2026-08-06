@@ -14,7 +14,7 @@ import {
   useCreateReviewTypeMutation,
   useDeleteReviewTypeMutation,
   useResetReviewTypeProgressMutation,
-  useSetDefaultReviewTypeMutation,
+  useSetFavoriteReviewTypeMutation,
   useUpdateReviewTypeMutation
 } from "./review-type-queries";
 import { ReviewTypeSettingsModal } from "./review-type-settings-modal";
@@ -56,7 +56,7 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
   const createReviewTypeMutation = useCreateReviewTypeMutation(deckId);
   const updateReviewTypeMutation = useUpdateReviewTypeMutation(deckId);
   const deleteReviewTypeMutation = useDeleteReviewTypeMutation(deckId);
-  const setDefaultMutation = useSetDefaultReviewTypeMutation(deckId);
+  const setFavoriteMutation = useSetFavoriteReviewTypeMutation(deckId);
   const resetProgressMutation = useResetReviewTypeProgressMutation(deckId);
 
   const frontLabel = (position: number) =>
@@ -109,7 +109,7 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
             return (
               <article
                 className={
-                  reviewType.isDefault
+                  reviewType.isFavorite
                     ? "review-type-card review-type-card-default"
                     : "review-type-card"
                 }
@@ -119,7 +119,7 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
                   <div className="review-type-copy">
                     <div className="review-type-title-row">
                       <p>{reviewType.name}</p>
-                      {reviewType.isDefault && (
+                      {reviewType.isFavorite && (
                         <Star className="default-star" size={14} fill="currentColor" />
                       )}
                     </div>
@@ -144,11 +144,11 @@ export function ReviewTypesTab({ deckId, reviewTypes, tags, templates }: ReviewT
                       <ActionMenuItem onClick={() => setSettingsReviewType(reviewType)}>
                         <Settings size={15} /> Reglages
                       </ActionMenuItem>
-                      {!reviewType.isDefault && (
+                      {!reviewType.isFavorite && (
                         <ActionMenuItem
-                          onClick={() => void setDefaultMutation.mutateAsync(reviewType.id)}
+                          onClick={() => void setFavoriteMutation.mutateAsync(reviewType.id)}
                         >
-                          <Star size={15} /> Definir par defaut
+                          <Star size={15} /> Definir comme favori
                         </ActionMenuItem>
                       )}
                       <ActionMenuItem

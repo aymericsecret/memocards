@@ -27,7 +27,6 @@ interface DeckRow {
   name: string;
   description: string | null;
   request_retention: number;
-  default_review_type_id: string | null;
   created_at: string;
   updated_at: string;
   total_cards: string;
@@ -41,7 +40,6 @@ interface DeckDetailRow {
   name: string;
   description: string | null;
   request_retention: number;
-  default_review_type_id: string | null;
   created_at: string;
   updated_at: string;
   total_cards: string;
@@ -161,6 +159,7 @@ export class DecksRepository {
           rt.back_side_position,
           rt.request_retention,
           rt.tag_id,
+          rt.is_favorite,
           rt.created_at,
           count(scoped.card_id) as total_cards,
           count(scoped.card_id) filter (
@@ -182,15 +181,15 @@ export class DecksRepository {
         d.name,
         d.description,
         d.request_retention,
-        d.default_review_type_id,
         d.created_at,
         d.updated_at,
         count(distinct c.id) as total_cards,
         coalesce(
           (
-            select default_rtc_counts.due_count
-            from review_types_with_counts default_rtc_counts
-            where default_rtc_counts.id = d.default_review_type_id
+            select favorite_rtc_counts.due_count
+            from review_types_with_counts favorite_rtc_counts
+            where favorite_rtc_counts.deck_id = d.id
+              and favorite_rtc_counts.is_favorite
           ),
           0
         ) as due_cards,
@@ -206,7 +205,7 @@ export class DecksRepository {
                 'backSidePosition', rtc_counts.back_side_position,
                 'requestRetention', rtc_counts.request_retention,
                 'tagId', rtc_counts.tag_id,
-                'isDefault', d.default_review_type_id = rtc_counts.id,
+                'isFavorite', rtc_counts.is_favorite,
                 'dueCount', rtc_counts.due_count,
                 'totalCards', rtc_counts.total_cards,
                 'groups', jsonb_build_object(
@@ -228,9 +227,12 @@ export class DecksRepository {
         ) as review_types
       from decks d
       left join cards c on c.deck_id = d.id
+      left join review_types favorite_rt
+        on favorite_rt.deck_id = d.id
+       and favorite_rt.is_favorite
       left join review_type_cards rtc
         on rtc.card_id = c.id
-       and rtc.review_type_id = d.default_review_type_id
+       and rtc.review_type_id = favorite_rt.id
       where d.user_id = $1::uuid
       group by d.id
       order by greatest(d.updated_at, coalesce(max(rtc.last_review), d.updated_at)) desc
@@ -243,7 +245,6 @@ export class DecksRepository {
       name: row.name,
       description: row.description,
       requestRetention: row.request_retention,
-      defaultReviewTypeId: row.default_review_type_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       stats: {
@@ -265,7 +266,6 @@ export class DecksRepository {
         d.name,
         d.description,
         d.request_retention,
-        d.default_review_type_id,
         d.created_at,
         d.updated_at,
         count(distinct c.id) as total_cards,
@@ -315,7 +315,6 @@ export class DecksRepository {
       name: row.name,
       description: row.description,
       requestRetention: row.request_retention,
-      defaultReviewTypeId: row.default_review_type_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       totalCards: Number(row.total_cards),
@@ -524,22 +523,12 @@ export class DecksRepository {
         );
       }
 
-      const reviewTypeResult = await client.query<{ id: string }>(
-        `
-        insert into review_types (deck_id, name, front_side_position)
-        values ($1::uuid, $2::text, 0)
-        returning id
-        `,
-        [createdDeckId, sideLabels[0] ?? "Recto"]
-      );
-
       await client.query(
         `
-        update decks
-        set default_review_type_id = $2::uuid
-        where id = $1::uuid
+        insert into review_types (deck_id, name, front_side_position, is_favorite)
+        values ($1::uuid, $2::text, 0, true)
         `,
-        [createdDeckId, reviewTypeResult.rows[0].id]
+        [createdDeckId, sideLabels[0] ?? "Recto"]
       );
 
       return createdDeckId;

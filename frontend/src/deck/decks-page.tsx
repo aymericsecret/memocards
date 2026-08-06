@@ -137,7 +137,7 @@ export function DecksPage() {
                           <div className="deck-review-row-head">
                             <div className="deck-review-title">
                               <h4>{reviewType.name}</h4>
-                              {reviewType.isDefault && (
+                              {reviewType.isFavorite && (
                                 <Star size={14} className="default-star" fill="currentColor" />
                               )}
                             </div>
