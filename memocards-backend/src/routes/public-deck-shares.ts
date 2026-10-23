@@ -16,6 +16,7 @@ const shareParamsSchema = z.object({
 });
 
 const createPublicShareBodySchema = z.object({
+  createdAfter: z.string().date().nullable().optional(),
   mode: z.enum(["ai", "people"]).default("ai"),
   reviewTypeId: z.string().uuid(),
   sidePositions: z.array(z.number().int().min(0)).min(1)
@@ -37,6 +38,7 @@ export async function registerPublicDeckShareRoutes(app: FastifyInstance) {
     const repository = Container.get(PublicDeckSharesRepository);
     const share = await repository.create({
       deckId: params.deckId,
+      createdAfter: body.createdAfter ?? null,
       mode: body.mode,
       reviewTypeId: body.reviewTypeId,
       sidePositions: [...new Set(body.sidePositions)].sort((a, b) => a - b),
@@ -70,18 +72,49 @@ export async function registerPublicDeckShareRoutes(app: FastifyInstance) {
 }
 
 export async function registerPublicMarkdownRoutes(app: FastifyInstance) {
-  app.get("/public/shares/:token.md", async (request, reply) => {
+  app.get("/public/shares/:token.json", async (request, reply) => {
     const params = publicShareParamsSchema.parse(request.params);
     const repository = Container.get(PublicDeckSharesRepository);
-    const markdown = await repository.getMarkdown(params.token);
+    const exportedShare = await repository.getExport(params.token);
 
-    if (!markdown) {
+    if (!exportedShare) {
+      return reply.status(404).send({ error: "Not Found", message: "Share not found" });
+    }
+
+    return reply
+      .type("application/json; charset=utf-8")
+      .header("cache-control", "no-store")
+      .send(exportedShare);
+  });
+
+  app.get("/public/shares/:token.txt", async (request, reply) => {
+    const params = publicShareParamsSchema.parse(request.params);
+    const repository = Container.get(PublicDeckSharesRepository);
+    const exportedShare = await repository.getExport(params.token);
+
+    if (!exportedShare) {
       return reply.status(404).type("text/plain; charset=utf-8").send("Share not found");
     }
 
     return reply
+      .type("text/plain; charset=utf-8")
+      .header("cache-control", "no-store")
+      .send(JSON.stringify(exportedShare, null, 2));
+  });
+
+  app.get("/public/shares/:token.md", async (request, reply) => {
+    const params = publicShareParamsSchema.parse(request.params);
+    const repository = Container.get(PublicDeckSharesRepository);
+    const exportedShare = await repository.getExport(params.token);
+
+    if (!exportedShare) {
+      return reply.status(404).type("text/plain; charset=utf-8").send("Share not found");
+    }
+
+    return reply
+      .header("content-disposition", `attachment; filename="memocards-${params.token}.md"`)
       .type("text/markdown; charset=utf-8")
       .header("cache-control", "no-store")
-      .send(markdown);
+      .send(repository.renderMarkdown(exportedShare));
   });
 }

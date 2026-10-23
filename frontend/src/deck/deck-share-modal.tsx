@@ -1,10 +1,11 @@
-import { Bot, Check, CopyIcon, ExternalLink, Trash2 } from "lucide-react";
+import { Bot, Check, CopyIcon, Download, ExternalLink, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button, Field, Modal, ModalHeader } from "../design-system";
 import { api, publicApiUrl } from "../shared/api";
 import type { ReviewType, SideTemplate } from "../shared/types";
 
 interface PublicShare {
+  createdAfter: string | null;
   createdAt: string;
   id: string;
   mode: "ai" | "people";
@@ -32,12 +33,14 @@ export function DeckShareModal({
 }: DeckShareModalProps) {
   const favoriteReviewType = reviewTypes.find((reviewType) => reviewType.isFavorite) ?? reviewTypes[0];
   const [reviewTypeId, setReviewTypeId] = useState(favoriteReviewType?.id ?? "");
+  const [createdAfter, setCreatedAfter] = useState("");
   const [sidePositions, setSidePositions] = useState<number[]>(
     templates[0] ? [templates[0].position] : []
   );
   const [shares, setShares] = useState<PublicShare[]>([]);
   const [isSharing, setIsSharing] = useState(false);
   const [isLoadingShares, setIsLoadingShares] = useState(false);
+  const [downloadingShareId, setDownloadingShareId] = useState<string | null>(null);
   const [deletingShareId, setDeletingShareId] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
@@ -84,7 +87,17 @@ export function DeckShareModal({
   if (!isOpen) return null;
 
   const getShareUrl = (publicShare: PublicShare) =>
+    `${publicApiUrl()}/public/shares/${publicShare.token}.txt`;
+
+  const getMarkdownDownloadUrl = (publicShare: PublicShare) =>
     `${publicApiUrl()}/public/shares/${publicShare.token}.md`;
+
+  const formatCreatedAfter = (value: string | null) =>
+    value
+      ? `Cartes creees depuis le ${new Intl.DateTimeFormat("fr-FR").format(
+          new Date(`${value}T00:00:00`)
+        )}`
+      : "Toutes les cartes connues";
 
   const formatShareSides = (positions: number[]) =>
     positions
@@ -111,6 +124,7 @@ export function DeckShareModal({
       const result = await api<{ share: PublicShare }>(`/decks/${deckId}/public-shares`, {
         method: "POST",
         body: JSON.stringify({
+          createdAfter: createdAfter || null,
           mode: "ai",
           reviewTypeId,
           sidePositions
@@ -147,6 +161,29 @@ export function DeckShareModal({
     setCopiedToken(publicShare.token);
   };
 
+  const downloadShare = async (publicShare: PublicShare) => {
+    setDownloadingShareId(publicShare.id);
+
+    try {
+      const response = await fetch(getMarkdownDownloadUrl(publicShare), {
+        headers: { Accept: "text/markdown" }
+      });
+      if (!response.ok) return;
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "memocards-share.md";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } finally {
+      setDownloadingShareId(null);
+    }
+  };
+
   return (
     <Modal className="share-modal-panel" labelledBy="share-ai-title" onClose={onClose}>
       <ModalHeader onClose={onClose}>
@@ -158,7 +195,7 @@ export function DeckShareModal({
 
       <div className="share-modal-body">
         <p className="modal-description">
-          Cree une URL publique Markdown toujours a jour avec les cartes connues du paquet.
+          Cree une URL publique JSON toujours a jour avec les cartes connues du paquet.
         </p>
 
         <div className="share-existing-list">
@@ -174,9 +211,19 @@ export function DeckShareModal({
                 <div>
                   <strong>{publicShare.reviewTypeName ?? "Type de revision"}</strong>
                   <span>{formatShareSides(publicShare.sidePositions)}</span>
+                  <span>{formatCreatedAfter(publicShare.createdAfter)}</span>
                   <code>{getShareUrl(publicShare)}</code>
                 </div>
                 <div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label="Telecharger le fichier Markdown"
+                    disabled={downloadingShareId === publicShare.id}
+                    onClick={() => void downloadShare(publicShare)}
+                  >
+                    <Download size={15} />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -231,6 +278,14 @@ export function DeckShareModal({
           </select>
         </Field>
 
+        <Field label="Cartes creees depuis le (optionnel)">
+          <input
+            onChange={(event) => setCreatedAfter(event.target.value)}
+            type="date"
+            value={createdAfter}
+          />
+        </Field>
+
         <div className="share-side-list">
           <p className="detail-section-title">Faces exposees</p>
           {templates.map((template) => (
@@ -254,7 +309,7 @@ export function DeckShareModal({
           disabled={!reviewTypeId || sidePositions.length === 0 || isSharing}
           onClick={() => void createShare()}
         >
-          <Bot size={15} /> {isSharing ? "Creation..." : "Creer le lien Markdown"}
+          <Bot size={15} /> {isSharing ? "Creation..." : "Creer le lien JSON"}
         </Button>
       </div>
     </Modal>

@@ -3,6 +3,7 @@ import { Container, Service } from "typedi";
 import { Database } from "../database.js";
 
 export interface CreatePublicDeckShareInput {
+  createdAfter: string | null;
   deckId: string;
   mode: "ai" | "people";
   reviewTypeId: string | null;
@@ -11,6 +12,7 @@ export interface CreatePublicDeckShareInput {
 }
 
 interface ShareRow {
+  created_after: string | null;
   created_at: string;
   id: string;
   deck_id: string;
@@ -26,9 +28,24 @@ interface ShareMarkdownRow {
   deck_name: string;
   review_type_name: string | null;
   side_label: string;
-  side_content: string;
+  side_content: string | null;
   side_position: number;
   card_id: string;
+}
+
+export interface PublicDeckShareExport {
+  cards: Array<{
+    id: string;
+    sides: Array<{
+      content: string;
+      label: string;
+      position: number;
+    }>;
+  }>;
+  createdAfter: string | null;
+  deckName: string;
+  mode: "ai" | "people";
+  reviewTypeName: string | null;
 }
 
 @Service()
@@ -70,14 +87,15 @@ export class PublicDeckSharesRepository {
     const result = await this.database.query<ShareRow>(
       `
       insert into public_deck_shares (
-        deck_id, review_type_id, token, mode, side_positions
+        deck_id, review_type_id, token, mode, side_positions, created_after
       )
-      values ($1::uuid, $2::uuid, $3::text, $4::text, $5::int[])
+      values ($1::uuid, $2::uuid, $3::text, $4::text, $5::int[], $6::date)
       on conflict (
         deck_id,
         mode,
         (coalesce(review_type_id, '00000000-0000-0000-0000-000000000000'::uuid)),
-        side_positions
+        side_positions,
+        (coalesce(created_after, '-infinity'::date))
       ) do update
       set updated_at = public_deck_shares.updated_at
       returning
@@ -88,6 +106,7 @@ export class PublicDeckSharesRepository {
         token,
         mode,
         side_positions,
+        created_after,
         created_at,
         updated_at
       `,
@@ -96,7 +115,8 @@ export class PublicDeckSharesRepository {
         input.reviewTypeId,
         token,
         input.mode,
-        input.sidePositions
+        input.sidePositions,
+        input.createdAfter
       ]
     );
 
@@ -114,6 +134,7 @@ export class PublicDeckSharesRepository {
         pds.token,
         pds.mode,
         pds.side_positions,
+        pds.created_after,
         pds.created_at,
         pds.updated_at
       from public_deck_shares pds
@@ -145,7 +166,7 @@ export class PublicDeckSharesRepository {
     return result.rows[0] ?? null;
   }
 
-  async getMarkdown(token: string) {
+  async getExport(token: string): Promise<PublicDeckShareExport | null> {
     const shareResult = await this.database.query<ShareRow>(
       `
       select
@@ -156,6 +177,7 @@ export class PublicDeckSharesRepository {
         pds.token,
         pds.mode,
         pds.side_positions,
+        pds.created_after,
         pds.created_at,
         pds.updated_at
       from public_deck_shares pds
@@ -180,6 +202,7 @@ export class PublicDeckSharesRepository {
       join decks d on d.id = pds.deck_id
       left join review_types rt on rt.id = pds.review_type_id
       join cards c on c.deck_id = pds.deck_id
+        and (pds.created_after is null or c.created_at >= pds.created_after)
       join review_type_cards rtc
         on rtc.card_id = c.id
        and rtc.review_type_id = pds.review_type_id
@@ -194,43 +217,54 @@ export class PublicDeckSharesRepository {
       [token]
     );
 
-    return this.renderMarkdown(share, result.rows);
-  }
-
-  private renderMarkdown(share: ShareRow, rows: ShareMarkdownRow[]) {
-    const deckName = rows[0]?.deck_name ?? "Memocards";
-    const reviewTypeName = rows[0]?.review_type_name;
     const groupedCards = new Map<string, ShareMarkdownRow[]>();
-
-    for (const row of rows) {
+    for (const row of result.rows) {
       const cardRows = groupedCards.get(row.card_id) ?? [];
       cardRows.push(row);
       groupedCards.set(row.card_id, cardRows);
     }
 
+    return {
+      cards: Array.from(groupedCards, ([id, cardRows]) => ({
+        id,
+        sides: cardRows
+          .sort((a, b) => a.side_position - b.side_position)
+          .map((row) => ({
+            content: row.side_content?.trim() ?? "",
+            label: row.side_label,
+            position: row.side_position
+          }))
+          .filter((side) => Boolean(side.content))
+      })).filter((card) => card.sides.length > 0),
+      createdAfter: share.created_after,
+      deckName: result.rows[0]?.deck_name ?? "Memocards",
+      mode: share.mode,
+      reviewTypeName: share.review_type_name
+    };
+  }
+
+  renderMarkdown(exportedShare: PublicDeckShareExport) {
+
     const markdown = [
-      `# ${deckName}`,
+      `# ${exportedShare.deckName}`,
       "",
-      reviewTypeName
-        ? `Known cards exported from review type: **${reviewTypeName}**.`
+      exportedShare.reviewTypeName
+        ? `Known cards exported from review type: **${exportedShare.reviewTypeName}**.`
         : "Known cards exported from Memocards.",
       "",
-      `Share mode: ${share.mode}`,
+      `Share mode: ${exportedShare.mode}`,
       "",
       "## Cards",
       ""
     ];
 
-    if (groupedCards.size === 0) {
+    if (exportedShare.cards.length === 0) {
       markdown.push("_No known cards match this share yet._");
       return markdown.join("\n");
     }
 
-    for (const cardRows of groupedCards.values()) {
-      const sortedRows = [...cardRows].sort((a, b) => a.side_position - b.side_position);
-      const values = sortedRows
-        .map((row) => row.side_content.trim())
-        .filter(Boolean);
+    for (const card of exportedShare.cards) {
+      const values = card.sides.map((side) => side.content);
 
       if (values.length === 1) {
         markdown.push(`- ${values[0]}`);
@@ -245,6 +279,7 @@ export class PublicDeckSharesRepository {
   private toShare(row: ShareRow) {
     return {
       createdAt: row.created_at,
+      createdAfter: row.created_after,
       id: row.id,
       deckId: row.deck_id,
       mode: row.mode,
